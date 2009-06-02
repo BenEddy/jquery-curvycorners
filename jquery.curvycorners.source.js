@@ -1,31 +1,29 @@
- /****************************************************************
-  *                                                              *
-  *  JQuery Curvy Corners by Mike Jolley                         *
-  *	 http://blue-anvil.com                                       *
-  *  ------------                                                *
-  *  Version 1.81                                                 *
-  *                                                              *
-  *  Origionaly by: Cameron Cooke and Tim Hutchison.             *
-  *  Website: http://www.curvycorners.net                        *
-  *                                                              *
-  *  This library is free software; you can redistribute         *
-  *  it and/or modify it under the terms of the GNU              *
-  *  Lesser General Public License as published by the           *
-  *  Free Software Foundation; either version 2.1 of the         *
-  *  License, or (at your option) any later version.             *
-  *                                                              *
-  *  This library is distributed in the hope that it will        *
-  *  be useful, but WITHOUT ANY WARRANTY; without even the       *
-  *  implied warranty of MERCHANTABILITY or FITNESS FOR A        *
-  *  PARTICULAR PURPOSE. See the GNU Lesser General Public       *
-  *  License for more details.                                   *
-  *                                                              *
-  *  You should have received a copy of the GNU Lesser           *
-  *  General Public License along with this library;             *
-  *  Inc., 59 Temple Place, Suite 330, Boston,                   *
-  *  MA 02111-1307 USA                                           *
-  *                                                              *
-  ****************************************************************/
+/*
+
+	JQuery Curvy Corners by Mike Jolley
+	http://blue-anvil.com
+	http://code.google.com/p/jquerycurvycorners/
+	------------ 
+	Version 1.9	
+	                                                        
+	Origionaly by: Cameron Cooke and Tim Hutchison.
+	Website: http://www.curvycorners.net
+	
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+	
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+	
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
+  
 (function($) {
 $.fn.corner = function(options) {
 
@@ -149,10 +147,10 @@ $.fn.corner = function(options) {
 		var returnColour = "transparent";
 		if(colour != "" && colour != "transparent")
 		{
-			if(colour.substr(0, 3) == "rgb")
+			if(colour.substr(0, 3) == "rgb" && colour.substr(0, 4) != "rgba")
 			{
 				returnColour = rgb2Hex(colour);
-			}
+			}			
 			else if(colour.length == 4)
 			{
 				returnColour = "#" + colour.substring(1, 2) + colour.substring(1, 2) + colour.substring(2, 3) + colour.substring(2, 3) + colour.substring(3, 4) + colour.substring(3, 4);
@@ -270,7 +268,7 @@ $.fn.corner = function(options) {
 		if(($.browser.msie)) {
 			if($.browser.version==6 && box.style.width == "auto" && box.style.height == "auto") $$.css("width","100%");
 			$$.css("zoom","1");
-			$($$ +" *").css("zoom","normal");
+			$("*", $$).css("zoom","normal");
 		}		
 		
 		for(var t = 0;t < 2;t++) {
@@ -300,7 +298,7 @@ $.fn.corner = function(options) {
 			
 			$(contentContainer2).css({ margin:"0","padding-bottom":boxPaddingBottom,"padding-top":boxPaddingTop,"padding-left":boxPaddingLeft,"padding-right":boxPaddingRight, 'overflow':'visible'}).addClass('hasBackgroundColor content_container');
 
-			$(contentContainer).css({position:"relative", 'float':"left",width:"100%", "margin-top":"-" + (topMaxRadius-borderWidth) + "px", "margin-bottom":"-" + (botMaxRadius-borderWidth) + "px"}).addClass = "autoPadDiv";
+			$(contentContainer).css({position:"relative", 'float':"left",width:"100%", "margin-top":"-" + Math.abs(topMaxRadius-borderWidth) + "px", "margin-bottom":"-" + Math.abs(botMaxRadius-borderWidth) + "px"}).addClass = "autoPadDiv";
 			
 			$(clearDiv).css("clear","both");
 
