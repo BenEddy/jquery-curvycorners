@@ -1,855 +1,774 @@
+/****************************************************************
+ *                                                              *
+ *  JQuery Curvy Corners by Mike Jolley                         *
+ *  http://blue-anvil.com                                       *
+ *  http://code.google.com/p/jquerycurvycorners/                *
+ *  ==========================================================  *
+ *                                                              *
+ *  Version 2.1 (Based on CC 2.1 beta)                          *
+ *                                                              *
+ *  Original by: Terry Riegel, Cameron Cooke and Tim Hutchison  *
+ *  Website: http://www.curvycorners.net                        *
+ *                                                              *
+ *  This library is free software; you can redistribute         *
+ *  it and/or modify it under the terms of the GNU              *
+ *  Lesser General Public License as published by the           *
+ *  Free Software Foundation; either version 2.1 of the         *
+ *  License, or (at your option) any later version.             *
+ *                                                              *
+ *  This library is distributed in the hope that it will        *
+ *  be useful, but WITHOUT ANY WARRANTY; without even the       *
+ *  implied warranty of MERCHANTABILITY or FITNESS FOR A        *
+ *  PARTICULAR PURPOSE. See the GNU Lesser General Public       *
+ *  License for more details.                                   *
+ *                                                              *
+ *  You should have received a copy of the GNU Lesser           *
+ *  General Public License along with this library;             *
+ *  Inc., 59 Temple Place, Suite 330, Boston,                   *
+ *  MA 02111-1307 USA                                           *
+ *                                                              *
+ ****************************************************************/
+
 /*
-
-	JQuery Curvy Corners by Mike Jolley
-	http://blue-anvil.com
-	http://code.google.com/p/jquerycurvycorners/
-	------------ 
-	Version 2.0.2 Beta 3
-	                                                        
-	Original by: Terry Riegel, Cameron Cooke and Tim Hutchison
-	Website: http://www.curvycorners.net
-	
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-	
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-	
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-*/
-
-/*
-Differences from offical CC:
-	- Boxes are not fixed size and will auto size to content
-	- Backgrounds aligned to bottom won't work correctly so align to top if you need to tile
-
 Usage:
-	Will now autoMagically apply borders via the CSS declarations
-	Safari, Mozilla, and Chrome all support rounded borders via
+	To use this plugin just apply borders via CSS Rules and include this plugin - it will automatically detect styles and apply corners.
 	
-	-webkit-border-radius, and -moz-border-radius
+	Opera and Chrome support rounded corners via border-radius
+	
+	Safari and Mozilla support rounded borders via -webkit-border-radius and -moz-border-radius
 		
-	So to make curvycorners work with any major browser simply add the following
-	CSS declarations and it should be good to go...
+	IE (any version) does not support border-radius - this is all we need to support.
+		
+	So to make curvycorners work with any major browser simply add the following CSS declarations:
 	
 	.round { 
-		-webkit-border-radius: 25px;
-	    -moz-border-radius: 25px;
-	    CCborderRadius: 25px;
+		border-radius: 3px;
+		-webkit-border-radius: 3px;
+		-moz-border-radius: 3px;
 	}
 	
-You can still use the direct syntax:
-
-	$('.myBox').corner();
+	----
 	
-Add the styles in the page itself to support Opera!
+	If you don't want to use the above method, you can still use the direct syntax if you want:
 
-*/  
-function styleit()
-{
-	for(var t = 0; t < document.styleSheets.length; t++)
-	{
-		var theRules = new Array();
-		theRules = document.styleSheets[t].rules;
-
-		for(var i = 0; i < theRules.length; i++)
-		{
+		$('.myBox').corner();
 		
-			var allR = theRules[i].style.CCborderRadius    || 0;
-			var tR   = theRules[i].style.CCborderRadiusTR  || allR;
-			var tL   = theRules[i].style.CCborderRadiusTL  || allR;
-			var bR   = theRules[i].style.CCborderRadiusBR  || allR;
-			var bL   = theRules[i].style.CCborderRadiusBL  || allR;
-
-			if (allR || tR || tR || bR || bL)
-			{
-				var s = theRules[i].selectorText;
-				
-				var settings = {					
-					tl: { radius: makeInt(tL) },
-					tr: { radius: makeInt(tR) },
-					bl: { radius: makeInt(bL) },
-					br: { radius: makeInt(bR) },
-					antiAlias: true,
-					autoPad: true,
-					validTags: ["div"]
-				};
-				
-				$(s).corner(settings); 
-
-			}
-		}
-	}
-}
-
-// static class function to determine if the sheet is worth parsing
-function opera_contains_border_radius(sheetnumber) {
-  return /border-((top|bottom)-(left|right)-)?radius/.test(document.styleSheets.item(sheetnumber).ownerNode.text);
-}
-
-function makeInt(num) {
-	var re = new RegExp('([0-9]*)');
-	var i = 0;
-	if(isNaN(num)) {
-		var a = re.exec(num);
-		if(!isNaN(parseInt(a[1]))) {
-			i = a[1];
-		}
-	}
-	else {
-		i = num;
-	}	
-	return i;
-}
-
+	The script will still use border-radius for those which support it.
+*/  
 (function($) { 
 
-	$(function(){
-		if ($.browser.msie) {	
-			styleit();
-		} else if ($.browser.opera) {
-
-      		for (t = 0; t < document.styleSheets.length; ++t) {
-
-        		if (opera_contains_border_radius(t)) {
-
-					var txt = document.styleSheets.item(t).ownerNode.text;
-					txt = txt.replace(/\/\*(\n|\r|.)*?\*\//g, ''); // strip comments
-					// this pattern extracts all border-radius-containing rulesets
-					// matches will be:
-					// [0] = the whole lot
-					// [1] = the selector text
-					// [2] = all the rule text between braces
-					// [3] = top/bottom and left/right parts if present (only if webkit/CSS3)
-					// [4] = top|bottom
-					// [5] = left|right
-					// .. but 3..5 are useless as they're only the first match.
-					var pat = new RegExp("^([\\w.#][\\w.#, ]+)[\\n\\s]*\\{([^}]+border-((top|bottom)-(left|right)-)?radius[^}]*)\\}", "mg");
-					var matches;
-					while ((matches = pat.exec(txt)) !== null) {
-						var pat2 = new RegExp("(..)border-((top|bottom)-(left|right)-)?radius:\\s*([\\d.]+)(in|em|px|ex|pt)", "g");
-						var submatches;
-						while ((submatches = pat2.exec(matches[2])) !== null) {
-						    if (submatches[1] !== "z-") {
-						    	var tL,tR,bL,bR, tLu,tRu,bLu,bRu;					    							  
-								if (!submatches[3]) { // no corner specified
-									tL = tR = bL = bR = parseInt(submatches[5]);
-									//tLu = tRu = bLu = bRu = submatches[6];
-								}
-								else { // corner specified
-									propname = submatches[3].charAt(0) + submatches[4].charAt(0);
-									this[propname + 'R'] = parseInt(submatches[5]);
-									//this[propname + 'u'] = submatches[6];
-								}
-								var settings = {					
-									tl: { radius: tL },
-									tr: { radius: tR },
-									bl: { radius: bL },
-									br: { radius: bR }
-								};	
-								$(matches[1]).corner(settings);
-						    }
-						}
-					}
+	// object that parses border-radius properties for a box
+	function curvyCnrSpec(selText) {
+		this.selectorText = selText;
+		this.tlR = this.trR = this.blR = this.brR = 0;
+		this.tlu = this.tru = this.blu = this.bru = "";
+		this.antiAlias = true; // default true
+	};
+	curvyCnrSpec.prototype.setcorner = function(tb, lr, radius, unit) {
+		if (!tb) { // no corner specified
+			this.tlR = this.trR = this.blR = this.brR = parseInt(radius);
+			this.tlu = this.tru = this.blu = this.bru = unit;
+		} else { // corner specified
+			propname = tb.charAt(0) + lr.charAt(0);
+			this[propname + 'R'] = parseInt(radius);
+			this[propname + 'u'] = unit;
+		}
+	};
+	curvyCnrSpec.prototype.get = function(prop) {
+		if (/^(t|b)(l|r)(R|u)$/.test(prop)) return this[prop];
+		if (/^(t|b)(l|r)Ru$/.test(prop)) {
+			var pname = prop.charAt(0) + prop.charAt(1);
+			return this[pname + 'R'] + this[pname + 'u'];
+		}
+		if (/^(t|b)Ru?$/.test(prop)) {
+			var tb = prop.charAt(0);
+			tb += this[tb + 'lR'] > this[tb + 'rR'] ? 'l' : 'r';
+			var retval = this[tb + 'R'];
+			if (prop.length === 3 && prop.charAt(2) === 'u')
+		  		retval += this[tb = 'u'];
+			return retval;
+		}
+		throw new Error('Don\'t recognize property ' + prop);
+	};
+	curvyCnrSpec.prototype.radiusdiff = function(tb) {
+		if (tb !== 't' && tb !== 'b') throw new Error("Param must be 't' or 'b'");
+		return Math.abs(this[tb + 'lR'] - this[tb + 'rR']);
+	};
+	curvyCnrSpec.prototype.setfrom = function(obj) {
+		this.tlu = this.tru = this.blu = this.bru = 'px'; // default to px
+		if ('tl' in obj) this.tlR = obj.tl.radius;
+		if ('tr' in obj) this.trR = obj.tr.radius;
+		if ('bl' in obj) this.blR = obj.bl.radius;
+		if ('br' in obj) this.brR = obj.br.radius;
+		if ('antiAlias' in obj) this.antiAlias = obj.antiAlias;
+	};
+	curvyCnrSpec.prototype.cloneOn = function(box) { // not needed by IE
+		var props = ['tl', 'tr', 'bl', 'br'];
+		var converted = 0;
+		var i, propu;	
+		for (i in props) if (!isNaN(i)) {
+			propu = this[props[i] + 'u'];
+			if (propu !== '' && propu !== 'px') {
+				converted = new curvyCnrSpec;
+				break;
+			}
+		}
+		if (!converted)
+			converted = this; // no need to clone
+		else {
+			var propi, propR, save = curvyBrowser.get_style(box, 'left');
+			for (i in props) if (!isNaN(i)) {
+				propi = props[i];
+				propu = this[propi + 'u'];
+				propR = this[propi + 'R'];
+				if (propu !== 'px') {
+					var save = box.style.left;
+					box.style.left = propR + propu;
+					propR = box.style.pixelLeft;
+					box.style.left = save;
 				}
-   			}
-   		}
-	});	
+				converted[propi + 'R'] = propR;
+				converted[propi + 'u'] = 'px';
+			}
+			box.style.left = save;
+		}
+		return converted;
+	};
+	curvyCnrSpec.prototype.radiusSum = function(tb) {
+		if (tb !== 't' && tb !== 'b') throw new Error("Param must be 't' or 'b'");
+		return this[tb + 'lR'] + this[tb + 'rR'];
+	};
+	curvyCnrSpec.prototype.radiusCount = function(tb) {
+		var count = 0;
+		if (this[tb + 'lR']) ++count;
+		if (this[tb + 'rR']) ++count;
+		return count;
+	};
+	curvyCnrSpec.prototype.cornerNames = function() {
+		var ret = [];
+		if (this.tlR) ret.push('tl');
+		if (this.trR) ret.push('tr');
+		if (this.blR) ret.push('bl');
+		if (this.brR) ret.push('br');
+		return ret;
+	};
+	
+	if (typeof redrawList === 'undefined') redrawList = new Array;
 	
 	$.fn.corner = function(options) {
-
-		var settings = {
-		  tl: { radius: 8 },
-		  tr: { radius: 8 },
-		  bl: { radius: 8 },
-		  br: { radius: 8 },
-		  antiAlias: true,
-		  autoPad: true,
-		  validTags: ["div"] 
-		};
-		if ( options && typeof(options) != 'string' )
-			$.extend(settings, options);
-	            
-		return this.each(function() {
-			if (!$(this).is('.hasCorners')) {
-				applyCorners(this, settings);				
-			}			
-		}); 
-
+		
+		// Check for Native Round Corners
+		var nativeCornersSupported = false;
+		var checkWebkit, checkMozilla, checkStandard;
+		try {	checkWebkit = (document.body.style.WebkitBorderRadius !== undefined);	} catch(err) {}
+		try {	checkMozilla = (document.body.style.MozBorderRadius !== undefined);	} catch(err) {}
+		try {	checkStandard = (document.body.style.BorderRadius !== undefined);	} catch(err) {}		
+		if (checkWebkit || checkMozilla || checkStandard) nativeCornersSupported = true;
+		
+		if (options instanceof curvyCnrSpec) {
+			settings = options;
+		}
+		else {
+		
+			var options = jQuery.extend({
+				tl: { radius: 8 },
+				tr: { radius: 8 },
+				bl: { radius: 8 },
+				br: { radius: 8 },
+				antiAlias: true
+			}, options);
+			
+			var settings = new curvyCnrSpec(this);
+			settings.setfrom(options);
+		
+		}
+		
   		// Apply the corners to the passed object!
-		function applyCorners(box,settings)
-		{
-				
+		function curvyObject()
+		{				
 			// Setup Globals
-			var $$ 						= $(box);
-			this.topContainer 			= null;
-			this.bottomContainer 		= null;
-			this.shell            		= null;
+			this.box              = arguments[1];
+			this.settings         = arguments[0];
+			var $$ 						= $(this.box);
+			var boxDisp;
+			
 			this.masterCorners 			= new Array();
-			this.contentDIV 				= null;
+			//this.contentDIV 				= null;			
+			this.topContainer = this.bottomContainer = this.shell = boxDisp = null;
 		
 			// Get CSS of box and define vars
-			
-			// Background + box colour
-			this.x_bgi 				= $$.css("backgroundImage");																// Background Image
-			this.x_bgi				= (x_bgi != "none" && x_bgi!="initial") ? x_bgi : "";
-			this.x_bgr 				= $$.css("backgroundRepeat");																// Background repeat
-			this.x_bgposX			= strip_px($$.css("backgroundPositionX")) ? strip_px($$.css("backgroundPositionX")) : 0; 	// Background position
-			this.x_bgposY			= strip_px($$.css("backgroundPositionY")) ? strip_px($$.css("backgroundPositionY")) : 0; 	// Background position
-			this.x_bgc 				= format_colour($$.css("backgroundColor"));													// Background Colour
-			
-			// Dimensions + positioning
-			var x_height 			= $$.css("height");		 					// Height
-			
-			if(typeof x_height == 'undefined') x_height = 'auto';
-			
-			this.x_height       	= parseInt(((x_height != "" && x_height != "auto" && x_height.indexOf("%") == -1)? x_height.substring(0, x_height.indexOf("px")) : box.offsetHeight));
-					
-			if($.browser.msie && $.browser.version==6)
-			{
-				this.x_width	 		= strip_px(box.offsetWidth); 
-			} 
-			else 
-			{
-				this.x_width	 		= strip_px($$.css('width')); 
-			}		
+			var boxWidth = $$.innerWidth(); // Does not include border width
 
-			this.xp_height      	= strip_px($$.parent().css("height")) ? strip_px($$.css("height")) : 'auto';				// Parent height
+			if ($$.is('table'))
+				throw new Error("You cannot apply corners to " + this.box.tagName + " elements.", "Error");
 			
-			// Borders
-			this.x_bw		     	= strip_px($$.css("borderTopWidth")) ? strip_px($$.css("borderTopWidth")) : 0; 				// Border width
+			// try to handle attempts to style inline elements
+			if ($$.css('display') === 'inline') {
+				$$.css('display', 'inline-block');
+			}
 			
-			// Different widths messed up borders
-			this.x_bbw		     	= strip_px($$.css("borderBottomWidth")) ? strip_px($$.css("borderBottomWidth")) : 0; 		// Bottom Border width
-			this.x_tbw		     	= strip_px($$.css("borderTopWidth")) ? strip_px($$.css("borderTopWidth")) : 0; 				// Top Border width
-			this.x_lbw		     	= strip_px($$.css("borderLeftWidth")) ? strip_px($$.css("borderLeftWidth")) : 0; 			// Left Border width
-			this.x_rbw		     	= strip_px($$.css("borderRightWidth")) ? strip_px($$.css("borderRightWidth")) : 0; 			// Right Border width
+			// all attempts have failed
 			
-			/*this.x_bbw		     	= strip_px($$.css("borderTopWidth")) ? strip_px($$.css("borderTopWidth")) : 0;
-			this.x_tbw		     	= strip_px($$.css("borderTopWidth")) ? strip_px($$.css("borderTopWidth")) : 0;
-			this.x_lbw		     	= strip_px($$.css("borderTopWidth")) ? strip_px($$.css("borderTopWidth")) : 0;
-			this.x_rbw		     	= strip_px($$.css("borderTopWidth")) ? strip_px($$.css("borderTopWidth")) : 0;*/
+			if (!boxWidth) {
+				this.applyCorners = function() {}; // make the error harmless
+				return;
+			}
+			if (arguments[0] instanceof curvyCnrSpec) {
+				this.spec = arguments[0].cloneOn(this.box); // convert non-pixel units
+			} else {
+				this.spec = new curvyCnrSpec('');
+				this.spec.setfrom(this.settings); // no need for unit conversion, use settings param. directly
+			}
 			
+			// Get box formatting details
+			var borderWidth     = $$.css("borderTopWidth") ? $$.css("borderTopWidth") : 0;
+			var borderWidthB    = $$.css("borderBottomWidth") ? $$.css("borderBottomWidth") : 0;
+			var borderWidthL    = $$.css("borderLeftWidth") ? $$.css("borderLeftWidth") : 0;
+			var borderWidthR    = $$.css("borderRightWidth") ? $$.css("borderRightWidth") : 0;
+			var borderColour    = $$.css("borderTopColor");
+			var borderColourB   = $$.css("borderBottomColor"); 
+			var borderColourL   = $$.css("borderLeftColor"); 
+			var borderColourR   = $$.css("borderRightColor"); 
+			var borderStyle     = $$.css("borderTopStyle");
+			var borderStyleB    = $$.css("borderBottomStyle");
+			var borderStyleL    = $$.css("borderLeftStyle");
+			var borderStyleR    = $$.css("borderRightStyle");
 			
-			this.x_bc		     	= format_colour($$.css("borderTopColor")); 													// Border colour
-			this.x_bbc		     	= format_colour($$.css("borderBottomColor")); 												// Bottom Border colour
-			this.x_tbc		     	= format_colour($$.css("borderTopColor")); 													// Top Border colour
-			this.x_lbc		     	= format_colour($$.css("borderLeftColor")); 												// Left Border colour
-			this.x_rbc		     	= format_colour($$.css("borderRightColor")); 												// Right Border colour
-			this.borderString    	= this.x_bw + "px" + " solid " + this.x_bc;
-      		this.borderStringB   	= this.x_bbw + "px" + " solid " + this.x_bbc;
-      		this.borderStringR    	= this.x_rbw + "px" + " solid " + this.x_bc;
-      		this.borderStringL   	= this.x_lbw + "px" + " solid " + this.x_bbc;
-						
-			// Padding
-			this.x_pad		      	= strip_px($$.css("paddingTop"));															// Padding
-			this.x_tpad	 			= strip_px($$.css("paddingTop"));															// Padding top
-			this.x_bpad 			= strip_px($$.css("paddingBottom"));														// Padding Bottom
-			this.x_lpad			 	= strip_px($$.css("paddingLeft"));															// Padding Left		
-			this.x_rpad			 	= strip_px($$.css("paddingRight"));															// Padding Right
-			this.topPaddingP     	= strip_px($$.parent().css("paddingTop"));													// Parent top padding
-			this.bottomPaddingP  	= strip_px($$.parent().css("paddingBottom"));												// Parent bottom padding
+			var boxColour       = $$.css("backgroundColor");
+			var backgroundImage = $$.css("backgroundImage");			
+			var backgroundRepeat= $$.css("backgroundRepeat");
+				
+			var backgroundPosX, backgroundPosY;
 			
-			// Margins
-			this.x_tmargin	 		= strip_px($$.css("marginTop"));														// Margin top
-			this.x_bmargin 			= strip_px($$.css("marginBottom"));														// Margin Bottom
-		
-			// Calc Radius
-			this.topMaxRadius = Math.max(settings.tl ? settings.tl.radius : 0, settings.tr ? settings.tr.radius : 0);
-			this.botMaxRadius = Math.max(settings.bl ? settings.bl.radius : 0, settings.br ? settings.br.radius : 0);
-			
-			// Add styles and class		
-			$$.addClass('hasCorners').css({
-				"padding":				"0", 
-				"border":				"none",
-				"backgroundColor":		"transparent", 
-				"backgroundImage":		"none", 
-				'overflow':				"visible"
-			});
-		
-			if(box.style.position != "absolute") $$.css("position","relative");
+			backgroundPosX  = $$.css("backgroundPositionX") ? $$.css("backgroundPositionX") : 0;
+			backgroundPosY  = $$.css("backgroundPositionY") ? $$.css("backgroundPositionY") : 0;
 
-       		$$.attr("id","ccoriginaldiv");
-
-			// Ok we add an inner div to actually put things into this will allow us to keep the height			
-			var newMainContainer = document.createElement("div");
+			var boxPosition     = $$.css("position");
+			var topPadding      = $$.css("paddingTop");
+			var bottomPadding   = $$.css("paddingBottom");
+			var leftPadding     = $$.css("paddingLeft");
+			var rightPadding    = $$.css("paddingRight");
+			var border          = $$.css("border");
+			var filter = jQuery.browser.version > 7 && $.browser.msie ? $$.css("filter") : null; // IE8 bug fix
 			
-			$(newMainContainer).css({"padding" : "0", width: '100%' }).attr('id','ccshell');			
-
-       		//this.shell = $$.append(newMainContainer);
-       		this.shell = newMainContainer;
-       		
-      		//this.x_width = strip_px($(this.shell).css('width'));
-
-			/*
-			Create top and bottom containers.
-			These will be used as a parent for the corners and bars.
-			*/
-			for(var t = 0; t < 2; t++)
-			{
-				switch(t)
-				{
-					// Top
-					case 0:
-					
-						// Only build top bar if a top corner is to be draw
-						if(settings.tl || settings.tr)
-						{
-							var newMainContainer = document.createElement("div");
-							
-							$(newMainContainer).css({
-								width: '100%',
-								"font-size":		"1px", 
-								overflow:			"hidden", 
-								position:			"absolute", 
-								height:				topMaxRadius + "px",
-								top:				0 - topMaxRadius + "px",
-								"marginLeft" :			- parseInt( this.x_lbw + this.x_lpad) + "px",
-								"marginRight" :			- parseInt( this.x_rbw + this.x_rpad) + "px"
-							}).attr('id','cctopcontainer');
-							
-							if($.browser.msie && $.browser.version==6) {
-								$(newMainContainer).css({   	
-									"paddingLeft" :			Math.abs(parseInt( this.x_lbw + this.x_lpad)) + "px",
-									"paddingRight" :		Math.abs(parseInt( this.x_rbw + this.x_rpad)) + "px"
-						        });
-					        }
-          
-							this.topContainer = this.shell.appendChild(newMainContainer);
-
-						}
-					break;
-					
-					// Bottom
-					case 1:
-					
-						// Only build bottom bar if a bottom corner is to be draw
-						if(settings.bl || settings.br)
-						{							
-							var newMainContainer = document.createElement("div");
-							
-							$(newMainContainer).css({ 
-								width: '100%',
-								"font-size":		"1px", 
-								"overflow":			"hidden", 
-								"position":			"absolute", 
-								height:				botMaxRadius + "px",
-								bottom:				0 - botMaxRadius  + "px",
-								"marginLeft" :			- parseInt( this.x_lbw + this.x_lpad) + "px",
-								"marginRight" :			- parseInt( this.x_rbw + this.x_rpad) + "px"
-							}).attr('id','ccbottomcontainer');
-							
-							if($.browser.msie && $.browser.version==6) {
-								$(newMainContainer).css({   	
-									"paddingLeft" :			Math.abs(parseInt( this.x_lbw + this.x_lpad)) + "px",
-									"paddingRight" :		Math.abs(parseInt( this.x_rbw + this.x_rpad)) + "px"
-						        });
-					        }
-							
-							this.bottomContainer = this.shell.appendChild(newMainContainer);	
-						}
-					break;
+			var topMaxRadius    = this.spec.get('tR');
+			var botMaxRadius    = this.spec.get('bR');
+			
+			var styleToNPx = function(val) {
+				if (typeof val === 'number') return val;
+				if (typeof val !== 'string') throw new Error('unexpected styleToNPx type ' + typeof val);
+				var matches = /^[-\d.]([a-z]+)$/.exec(val);
+				if (matches && matches[1] != 'px') throw new Error('Unexpected unit ' + matches[1]);
+				if (isNaN(val = parseInt(val))) val = 0;
+				return val;
+			};
+			var min0Px = function(val) {
+				return val <= 0 ? "0" : val + "px";
+			};
+			
+			// Set formatting properties
+			try {
+				this.borderWidth     = styleToNPx(borderWidth);
+				this.borderWidthB    = styleToNPx(borderWidthB);
+				this.borderWidthL    = styleToNPx(borderWidthL);
+				this.borderWidthR    = styleToNPx(borderWidthR);
+				this.boxColour       = curvyObject.format_colour(boxColour);
+				this.topPadding      = styleToNPx(topPadding);
+				this.bottomPadding   = styleToNPx(bottomPadding);
+				this.leftPadding     = styleToNPx(leftPadding);
+				this.rightPadding    = styleToNPx(rightPadding);
+				this.boxWidth        = boxWidth;
+				this.boxHeight       = $$.innerHeight(); // No border
+				this.borderColour    = curvyObject.format_colour(borderColour);
+				this.borderColourB   = curvyObject.format_colour(borderColourB);
+				this.borderColourL   = curvyObject.format_colour(borderColourL);
+				this.borderColourR   = curvyObject.format_colour(borderColourR);
+				this.borderString    = this.borderWidth + "px" + " " + borderStyle + " " + this.borderColour;
+				this.borderStringB   = this.borderWidthB + "px" + " " + borderStyleB + " " + this.borderColourB;
+				this.borderStringL   = this.borderWidthL + "px" + " " + borderStyleL + " " + this.borderColourL;
+				this.borderStringR   = this.borderWidthR + "px" + " " + borderStyleR + " " + this.borderColourR;
+				this.backgroundImage = (backgroundImage != "none" && backgroundImage!="initial") ? backgroundImage : "";
+				this.backgroundRepeat= backgroundRepeat;
+			}
+			catch(e) {}
+			
+			var clientHeight = this.boxHeight;
+			var clientWidth = boxWidth; // save it as it gets trampled on later
+			if ($.browser.opera) {
+				backgroundPosX = styleToNPx(backgroundPosX);
+				backgroundPosY = styleToNPx(backgroundPosY);
+				if (backgroundPosX) {
+					var t = clientWidth + this.borderWidthL + this.borderWidthR;
+					if (backgroundPosX > t) backgroundPosX = t;
+					backgroundPosX = (t / backgroundPosX * 100) + '%'; // convert to percentage
+				}
+				if (backgroundPosY) {
+					var t = clientHeight + this.borderWidth + this.borderWidthB;
+					if (backgroundPosY > t) backgroundPosY = t;
+					backgroundPosY = (t / backgroundPosY * 100) + '%'; // convert to percentage
 				}
 			}
 
+			// Create content container
+			this.contentContainer = document.createElement("div");
+			if (filter) this.contentContainer.style.filter = filter; // IE8 bug fix
+			while (this.box.firstChild) this.contentContainer.appendChild(this.box.removeChild(this.box.firstChild));
+			
+			if (boxPosition != "absolute") $$.css("position", "relative");
+			this.box.style.padding = '0';
+			this.box.style.border = this.box.style.backgroundImage = 'none';
+			this.box.style.backgroundColor = 'transparent';
+			
+			this.box.style.width   = (clientWidth + this.borderWidthL + this.borderWidthR) + 'px';
+			this.box.style.height  = (clientHeight + this.borderWidth + this.borderWidthB) + 'px';
+			
+			// Ok we add an inner div to actually put things into this will allow us to keep the height
+			
+			var newMainContainer = document.createElement("div");
+			$(newMainContainer).css({
+				width: clientWidth + 'px',
+				'padding':			"0",
+				position:			"absolute", 
+				height:				min0Px(clientHeight + this.borderWidth + this.borderWidthB - topMaxRadius - botMaxRadius),
+				top:				topMaxRadius + "px",
+				left:				"0",
+				'backgroundColor':	boxColour,
+				'backgroundImage':	this.backgroundImage,
+				'backgroundRepeat':	this.backgroundRepeat,
+				'direction':		'ltr'
+			});
+			
+			if (filter) $(newMainContainer).css('filter', 'filter'); // IE8 bug fix
 
-			// Create array of available corners
-			var corners = ["tr", "tl", "br", "bl"];
-			/*
-			Loop for each corner
-			*/
-			for(var i in corners)
-			{
-				if(i > -1 < 4)
-				{
+			if (this.borderWidthL)
+				$(newMainContainer).css('borderLeft', this.borderStringL);
+			if (this.borderWidth && !topMaxRadius)
+				$(newMainContainer).css('borderTop', this.borderString);
+			if (this.borderWidthR)
+				$(newMainContainer).css('borderRight', this.borderStringR);
+			if (this.borderWidthB && !botMaxRadius)
+				$(newMainContainer).css('borderBottom', this.borderStringB);
+				
+			this.shell = this.box.appendChild(newMainContainer);
+			
+			boxWidth = $(this.shell).css("width");
+			
+			if (boxWidth === "" || boxWidth === "auto" || boxWidth.indexOf("%") !== -1) throw Error('Shell width is ' + boxWidth);
+			
+			this.boxWidth = (boxWidth != "" && boxWidth != "auto" && boxWidth.indexOf("%") == -1) ? parseInt(boxWidth) : $(this.shell).width();
+			
+			this.applyCorners = function() {
+				/*
+				Set up background offsets. This may need to be delayed until
+				the background image is loaded.
+				*/
+				this.backgroundPosX = this.backgroundPosY = 0;
+				if (this.backgroundObject) {
+					var bgOffset = function(style, imglen, boxlen) {
+						if (style === 0) return 0;
+						var retval;
+						if (style === 'right' || style === 'bottom') return boxlen - imglen;
+						if (style === 'center') return (boxlen - imglen) / 2;
+						if (style.indexOf('%') > 0) return (boxlen - imglen) * 100 / parseInt(style);
+						return styleToNPx(style);
+					};
+					this.backgroundPosX  = bgOffset(backgroundPosX, this.backgroundObject.width, clientWidth);
+					this.backgroundPosY  = bgOffset(backgroundPosY, this.backgroundObject.height, clientHeight);
+				}
+				else if (this.backgroundImage) {
+					this.backgroundPosX = styleToNPx(backgroundPosX);
+					this.backgroundPosY = styleToNPx(backgroundPosY);
+				}
+				/*
+				Create top and bottom containers.
+				These will be used as a parent for the corners and bars.
+				*/
+				// Build top bar only if a top corner is to be drawn
+				if (topMaxRadius) {
+					newMainContainer = document.createElement("div");
+					
+					$(newMainContainer).css({
+						width: 				this.boxWidth + "px",
+						'fontSize':			"1px",
+						overflow:			"hidden", 
+						position:			"absolute", 
+						'paddingLeft':		this.borderWidth + "px",
+						'paddingRight':		this.borderWidth + "px",						
+						height:				topMaxRadius + "px",
+						top:				-topMaxRadius + "px",
+						left:				-this.borderWidthL + "px"
+					});					
+					this.topContainer = this.shell.appendChild(newMainContainer);
+				}
+				// Build bottom bar only if a bottom corner is to be drawn
+				if (botMaxRadius) {
+					var newMainContainer = document.createElement("div");
+					
+					$(newMainContainer).css({
+						width: 				this.boxWidth + "px",
+						'fontSize':			"1px",
+						overflow:			"hidden", 
+						position:			"absolute", 
+						'paddingLeft':		this.borderWidthB + "px",
+						'paddingRight':		this.borderWidthB + "px",					
+						height:				botMaxRadius + "px",
+						bottom:				-botMaxRadius + "px",
+						left:				-this.borderWidthL + "px"
+					});
+					this.bottomContainer = this.shell.appendChild(newMainContainer);
+				}
+			
+				var corners = this.spec.cornerNames();  // array of available corners
+			
+				/*
+				Loop for each corner
+				*/
+				for (var i in corners) if (!isNaN(i)) {
 					// Get current corner type from array
 					var cc = corners[i];
+					var specRadius = this.spec[cc + 'R'];
 					// Has the user requested the currentCorner be round?
 					// Code to apply correct color to top or bottom
-					if(cc == "tr" || cc == "tl")
-					{
-						var bwidth=this.x_bw;
-						var bcolor=this.x_bc;
+					var bwidth, bcolor, borderRadius, borderWidthTB;
+					if (cc == "tr" || cc == "tl") {
+						bwidth = this.borderWidth;
+						bcolor = this.borderColour;
+						borderWidthTB = this.borderWidth;
 					} else {
-						var bwidth=this.x_bbw;
-						var bcolor=this.x_bbc;
+						bwidth = this.borderWidthB;
+						bcolor = this.borderColourB;
+						borderWidthTB = this.borderWidthB;
 					}
+					borderRadius = specRadius - borderWidthTB;
 					
-					// Yes, we need to create a new corner
 					var newCorner = document.createElement("div");
 					
 					$(newCorner).css({
 						position:"absolute",
 						"font-size":"1px", 
 						overflow:"hidden"
-					}).height(settings[cc].radius + "px").width(settings[cc].radius + "px");
+					}).height(this.spec.get(cc + 'Ru')).width(this.spec.get(cc + 'Ru'));
 					
 					// THE FOLLOWING BLOCK OF CODE CREATES A ROUNDED CORNER
 					// ---------------------------------------------------- TOP
-					// Get border radius
-					var borderRadius = parseInt(settings[cc].radius - bwidth);
+					var intx, inty, outsideColour;
+					var trans = filter ? parseInt(/alpha\(opacity.(\d+)\)/.exec(filter)[1]) : 100; // IE8 bug fix
 					// Cycle the x-axis
-					for(var intx = 0, j = settings[cc].radius; intx < j; intx++)
-					{
-                      // Calculate the value of y1 which identifies the pixels inside the border
-                      if((intx +1) >= borderRadius)
-                        var y1 = -1;
-                      else
-                        var y1 = (Math.floor(Math.sqrt(Math.pow(borderRadius, 2) - Math.pow((intx+1), 2))) - 1);
-                      // Only calculate y2 and y3 if there is a border defined
-                      if(borderRadius != j)
-                      {
-                          if((intx) >= borderRadius)
-                            var y2 = -1;
-                          else
-                            var y2 = Math.ceil(Math.sqrt(Math.pow(borderRadius,2) - Math.pow(intx, 2)));
-                           if((intx+1) >= j)
-                            var y3 = -1;
-                           else
-                            var y3 = (Math.floor(Math.sqrt(Math.pow(j ,2) - Math.pow((intx+1), 2))) - 1);
-                      }
-                      // Calculate y4
-                      if((intx) >= j)
-                        var y4 = -1;
-                      else
-                        var y4 = Math.ceil(Math.sqrt(Math.pow(j ,2) - Math.pow(intx, 2)));
-                      // Draw bar on inside of the border with foreground colour
-                      
-                      if(y1 > -1) drawPixel(intx, 0, this.x_bgc, 100, (y1+1), newCorner, -1, settings[cc].radius, 0, this.x_bgi, this.x_width, this.x_height, this.x_bw, this.x_bgr);
-                      // Only draw border/foreground antialiased pixels and border if there is a border defined
-                      if(borderRadius != j)
-                      {
-                          // Cycle the y-axis
-                          for(var inty = (y1 + 1); inty < y2; inty++)
-                          {
-                              // Draw anti-alias pixels
-                              if(settings.antiAlias)
-                              {
-                                  // For each of the pixels that need anti aliasing between the foreground and border colour draw single pixel divs
-                                  if(this.x_bgi != "")
-                                  {
-										var borderFract = (pixelFraction(intx, inty, borderRadius) * 100);
-										if(borderFract < 30)
-										{
-											drawPixel(intx, inty, bcolor, 100, 1, newCorner, 0, settings[cc].radius, 0, this.x_bgi, this.x_width, this.x_height, bwidth, this.x_bgr);
-										}
-										else
-										{
-											drawPixel(intx, inty, bcolor, 100, 1, newCorner, -1, settings[cc].radius, 0, this.x_bgi, this.x_width, this.x_height, bwidth, this.x_bgr);
-                                  		}
-                                  	}
-                                  	else
-                                  	{
-                                      	var pixelcolour = BlendColour(this.x_bgc, bcolor, pixelFraction(intx, inty, borderRadius));
-                                     	drawPixel(intx, inty, pixelcolour, 100, 1, newCorner, 0, settings[cc].radius, 0, this.x_bgi, this.x_width, this.x_height, bwidth, this.x_bgr);
-                                  	}
-                              }
-                          }
-                          // Draw bar for the border
-                          if(settings.antiAlias)
-                          {
-                              if(y3 >= y2)
-                              {
-                                 if (y2 == -1) y2 = 0;
-                                 drawPixel(intx, y2, bcolor, 100, (y3 - y2 + 1), newCorner, 0, 0, 1, this.x_bgi, this.x_width, this.x_height, bwidth, this.x_bgr);
-                              }
-                          }
-                          else
-                          {
-                              if(y3 >= y1)
-                              {
-                                  drawPixel(intx, (y1 + 1), bcolor, 100, (y3 - y1), newCorner, 0, 0, 1, this.x_bgi, this.x_width, this.x_height, bwidth, this.x_bgr);
-                              }
-                          }
-                          // Set the colour for the outside curve
-                          var outsideColour = bcolor;
-                      }
-                      else
-                      {
-                          // Set the colour for the outside curve
-                          var outsideColour = this.x_bgc;
-                          var y3 = y1;
-                      }
-                      // Draw aa pixels?
-                      if(settings.antiAlias)
-                      {
-                          // Cycle the y-axis and draw the anti aliased pixels on the outside of the curve
-                          for(var inty = (y3 + 1); inty < y4; inty++)
-                          {
-                              // For each of the pixels that need anti aliasing between the foreground/border colour & background draw single pixel divs
-                              drawPixel(intx, inty, outsideColour, (pixelFraction(intx, inty , j) * 100), 1, newCorner, ((bwidth > 0)? 0 : -1), settings[cc].radius, 0, this.x_bgi, this.x_width, this.x_height, bwidth);
-                          }
-                      }
-                  }
-                  // END OF CORNER CREATION
-                  // ---------------------------------------------------- END
-                  
-                  // We now need to store the current corner in the masterConers array
-                  masterCorners[settings[cc].radius] = $(newCorner).clone();
-
-                  /*
-                  Now we have a new corner we need to reposition all the pixels unless
-                  the current corner is the bottom right.
-                  */
-                  // Loop through all children (pixel bars)
-                  for(var t = 0, k = newCorner.childNodes.length; t < k; t++)
-                  {
-                      // Get current pixel bar
-                      var pixelBar = newCorner.childNodes[t];
-                      
-                      // Get current top and left properties
-                      var pixelBarTop    = parseInt(pixelBar.style.top.substring(0, pixelBar.style.top.indexOf("px")));
-                      var pixelBarLeft   = parseInt(pixelBar.style.left.substring(0, pixelBar.style.left.indexOf("px")));
-                      var pixelBarHeight = parseInt(pixelBar.style.height.substring(0, pixelBar.style.height.indexOf("px")));
-                     
-                      // Reposition pixels
-                      if(cc == "tl" || cc == "bl"){
-                          pixelBar.style.left = settings[cc].radius -pixelBarLeft -1 + "px"; // Left
-                      }
-                      if(cc == "tr" || cc == "tl"){
-                          pixelBar.style.top =  settings[cc].radius -pixelBarHeight -pixelBarTop + "px"; // Top
-                      }
-                      pixelBar.style.backgroundRepeat = this.x_bgr;
-
-                      switch(cc)
-                      {
-                          case "tr":
- 								
- 								if($.browser.msie && $.browser.version==6) var offset = this.x_lpad + this.x_rpad + this.x_lbw + this.x_rbw;
- 								else var offset = 0;
- 								
-                                pixelBar.style.backgroundPosition  = parseInt( this.x_bgposX - Math.abs( this.x_rbw - this.x_lbw + (this.x_width - settings[cc].radius + this.x_rbw) + pixelBarLeft) - settings.bl.radius - this.x_bw - settings.br.radius - this.x_bw) + offset + "px " + parseInt( this.x_bgposY - Math.abs(settings[cc].radius -pixelBarHeight -pixelBarTop - this.x_bw)) + "px";
-
-                              break;
-                          case "tl":
-                              pixelBar.style.backgroundPosition = parseInt( this.x_bgposX - Math.abs((settings[cc].radius -pixelBarLeft -1)  - this.x_lbw)) + "px " + parseInt( this.x_bgposY - Math.abs(settings[cc].radius -pixelBarHeight -pixelBarTop - this.x_bw)) + "px";
-                              break;
-                          case "bl":
-
-                                  pixelBar.style.backgroundPosition = parseInt( this.x_bgposX - Math.abs((settings[cc].radius -pixelBarLeft -1) - this.x_lbw )) + "px " + parseInt( this.x_bgposY - Math.abs(( this.x_height + (this.x_bw+this.x_tpad+this.x_bpad) - settings[cc].radius + pixelBarTop))) + "px";
-              
-                              break;
-                          case "br":
-								  // Added - settings.bl.radius - this.x_bw - settings.br.radius - this.x_bw to this and tr to offset background image due to neg margins.
-								  if($.browser.msie && $.browser.version==6) var offset = this.x_lpad + this.x_rpad + this.x_lbw + this.x_rbw;
- 									else var offset = 0;
- 								
-                                  pixelBar.style.backgroundPosition = parseInt( this.x_bgposX - Math.abs( this.x_rbw - this.x_lbw + (this.x_width - settings[cc].radius + this.x_rbw) + pixelBarLeft) - settings.bl.radius - this.x_bw - settings.br.radius - this.x_bw) + offset + "px " + parseInt( this.x_bgposY - Math.abs(( this.x_height + (this.x_bw+this.x_tpad+this.x_bpad) - settings[cc].radius + pixelBarTop))) + "px";
-                      
-                              break;
-                      }
-                  }
-
-                  // Position the container
-                  switch(cc)
-                  {
-
-
-                      case "tl":
-                        if(newCorner.style.position == "absolute") newCorner.style.top  = "0px";
-                        if(newCorner.style.position == "absolute") newCorner.style.left = "0px";
-                        if(this.topContainer) temp= this.topContainer.appendChild(newCorner);
-						$(temp).attr("id","cctl");
-
-
-                        break;
-                      case "tr":
-                        if(newCorner.style.position == "absolute") newCorner.style.top  = "0px";
-                        if(newCorner.style.position == "absolute") newCorner.style.right = "0px";
-                        if(this.topContainer) temp= this.topContainer.appendChild(newCorner);
-						$(temp).attr("id","cctr");
-
-                        break;
-                      case "bl":
-                        if(newCorner.style.position == "absolute") newCorner.style.bottom  = "0px";
-                        if(newCorner.style.position == "absolute") newCorner.style.left = "0px";
-						if(this.bottomContainer) temp= this.bottomContainer.appendChild(newCorner);
-						$(temp).attr("id","ccbl");
-
-                        break;
-                      case "br":
-                        if(newCorner.style.position == "absolute") newCorner.style.bottom   = "0px";
-                        if(newCorner.style.position == "absolute") newCorner.style.right = "0px";
-						if(this.bottomContainer) temp= this.bottomContainer.appendChild(newCorner);
-						$(temp).attr("id","ccbr");
-
-                        break;
-                  }
-
-              }
-          }
-
-
-
-          /*
-          The last thing to do is draw the rest of the filler DIVs.
-          We only need to create a filler DIVs when two corners have
-          diffrent radiuses in either the top or bottom container.
-          */
-
-          // Find out which corner has the bigger radius and get the difference amount
-          var radiusDiff = new Array();
-          radiusDiff["t"] = Math.abs(settings.tl.radius - settings.tr.radius);
-          radiusDiff["b"] = Math.abs(settings.bl.radius - settings.br.radius);
-
-          for(z in radiusDiff)
-          {
-              // FIX for prototype lib
-              if(z == "t" || z == "b")
-              {
-                  if(radiusDiff[z])
-                  {
-                      // Get the type of corner that is the smaller one
-                      var smallerCornerType = ((settings[z + "l"].radius < settings[z + "r"].radius)? z +"l" : z +"r");
-
-                      // First we need to create a DIV for the space under the smaller corner
-                      var newFiller = document.createElement("DIV");
-                      newFiller.style.height = radiusDiff[z] + "px";
-                      newFiller.style.width  =  settings[smallerCornerType].radius + "px";
-                      newFiller.style.position = "absolute";
-                      newFiller.style.fontSize = "1px";
-                      newFiller.style.overflow = "hidden";
-                      newFiller.style.backgroundColor = this.x_bgc;
-                      //newFiller.style.backgroundColor = get_random_color();
-
-                      // Position filler
-                      switch(smallerCornerType)
-                      {
-                          case "tl":
-                              newFiller.style.bottom = "0px";
-                              newFiller.style.left   = "0px";
-                              newFiller.style.borderLeft = this.borderString;
-                              temp=this.topContainer.appendChild(newFiller);
-temp.id="cctlfiller";
-
-                              break;
-
-                          case "tr":
-                              newFiller.style.bottom = "0px";
-                              newFiller.style.right  = "0px";
-                              newFiller.style.borderRight = this.borderString;
-                              temp=this.topContainer.appendChild(newFiller);
-temp.id="cctrfiller";
-
-                              break;
-
-                          case "bl":
-                              newFiller.style.top    = "0px";
-                              newFiller.style.left   = "0px";
-                              newFiller.style.borderLeft = this.borderStringB;
-                              temp=this.bottomContainer.appendChild(newFiller);
-temp.id="ccblfiller";
-
-                              break;
-
-                          case "br":
-                              newFiller.style.top    = "0px";
-                              newFiller.style.right  = "0px";
-                              newFiller.style.borderRight = this.borderStringB;
-                              temp=this.bottomContainer.appendChild(newFiller);
-temp.id="ccbrfiller";
-
-                              break;
-                      }
-                  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                  // Create the bar to fill the gap between each corner horizontally
-                  var newFillerBar = document.createElement("div");
-                  newFillerBar.style.position = "relative";
-                  newFillerBar.style.fontSize = "1px";
-                  newFillerBar.style.overflow = "hidden";
-                  newFillerBar.style.backgroundColor = this.x_bgc;
-                  newFillerBar.style.backgroundImage = this.x_bgi;
-                  newFillerBar.style.backgroundRepeat= this.x_bgr;
-
-
-                  switch(z)
-                  {
-                      case "t":
-                          // Top Bar
-                          if(this.topContainer)
-                          {
-                              // Edit by Asger Hallas: Check if settings.xx.radius is not false
-                              if(settings.tl.radius && settings.tr.radius)
-                              {
-                                  newFillerBar.style.height      = 100 + topMaxRadius - this.x_tbw + "px";
-                                  newFillerBar.style.marginLeft  = settings.tl.radius - this.x_lbw + this.x_rbw + "px";
-                                  newFillerBar.style.marginRight = settings.tr.radius - this.x_lbw + this.x_rbw + "px";
-                                  newFillerBar.style.borderTop   = this.borderString;                                 
-                                   
-                                  if(this.x_bgi != "")
-                                    newFillerBar.style.backgroundPosition  = parseInt( this.x_bgposX - (topMaxRadius - this.x_lbw )) + "px " + parseInt( this.x_bgposY ) + "px";
-                                    //newFillerBar.style.backgroundPosition  = parseInt( this.x_bgposX - (topMaxRadius - this.x_lbw)) + "px " + parseInt( this.x_bgposY ) + "px";
-                                    
-									if($.browser.msie && $.browser.version==6) {
-										$(newFillerBar).css({   	
-											"marginLeft" :		- parseInt( this.x_lbw + this.x_lpad - settings.tl.radius ) + "px",
-											"marginRight" :		- parseInt( this.x_rbw + this.x_rpad - settings.tr.radius ) + "px"
-										});
-										 if(this.x_bgi != "")
-                                    		newFillerBar.style.backgroundPosition  = parseInt( this.x_bgposX + this.x_lbw - (topMaxRadius )) + "px " + parseInt( this.x_bgposY ) + "px";
-					       			}
-
-								
-                                  temp=this.topContainer.appendChild(newFillerBar);
-								  $(temp).attr("id","cctopmiddlefiller");
-
-                                  // Repos the boxes background image
-                                  $(this.shell).css("backgroundPosition", parseInt( this.x_bgposX ) + "px " + parseInt( this.x_bgposY - (topMaxRadius - this.x_lbw)) + "px");
-                              }
-                          }
-                          break;
-                      case "b":
-                          if(this.bottomContainer)
-                          {
-                              // Edit by Asger Hallas: Check if settings.xx.radius is not false
-                              if(settings.bl.radius && settings.br.radius)
-                              {
-                                  // Bottom Bar
-                                  newFillerBar.style.height     = botMaxRadius - this.x_bbw + "px";
-                                  newFillerBar.style.marginLeft   = settings.bl.radius - this.x_lbw + this.x_rbw + "px";
-                                  newFillerBar.style.marginRight  = settings.br.radius - this.x_lbw + this.x_rbw + "px";
-                                  newFillerBar.style.borderBottom = this.borderStringB;
-                                  if(this.x_bgi != "")
-                                    newFillerBar.style.backgroundPosition  = parseInt( this.x_bgposX - (botMaxRadius - this.x_lbw )) + "px " + parseInt( this.x_bgposY - (this.x_height + this.x_tpad + this.x_bbw + this.x_bpad - botMaxRadius )) + "px";
-                                    //newFillerBar.style.backgroundPosition  = parseInt( this.x_bgposX - (botMaxRadius  - this.x_lbw )) + "px " + parseInt( this.x_bgposY - (this.x_height + this.x_tpad + this.x_bw + this.x_bpad - botMaxRadius )) + "px";
-                                  
-                                  if($.browser.msie && $.browser.version==6) {
-										$(newFillerBar).css({   	
-											"marginLeft" :		- parseInt( this.x_lbw + this.x_lpad - settings.bl.radius ) + "px",
-											"marginRight" :		- parseInt( this.x_rbw + this.x_rpad - settings.br.radius ) + "px"
-										});
-										
-										if(this.x_bgi != "")
-                                    		newFillerBar.style.backgroundPosition  = parseInt( this.x_bgposX - (botMaxRadius - this.x_lbw)) + "px " + parseInt( this.x_bgposY - (this.x_height + this.x_tpad + this.x_bbw + this.x_bpad - botMaxRadius )) + "px";
-					       			}
-					       			
-                                  temp=this.bottomContainer.appendChild(newFillerBar);
-$(temp).attr("id","ccbottommiddlefiller");
-
-                              }
-                          }
-                          break;
-                  }
-              }
-          }
-
-
-          // Create content container
-          var contentContainer = document.createElement("div");
-          var pd = 0;
-          // Set contentContainer's properties
-        //  contentContainer.style.position = "absolute";
-          contentContainer.className      = "autoPadDiv";
-          // Get padding amounts
-          var topPadding = Math.abs( this.x_bw  + this.x_pad);
-          var botPadding = Math.abs( this.x_bbw + this.x_bpad);
-          
-          // Apply top padding
-          if(topMaxRadius < this.boxPadding)
-            {
-             contentContainer.style.paddingTop = Math.abs(parseInt( pd + topPadding)) + "px";
-            } 
-            else
-            {
-            contentContainer.style.paddingTop = "0";
-          }
-          
-          // Apply Bottom padding
-          if(botMaxRadius < this.x_pad)
-            {contentContainer.style.paddingBottom = Math.abs(parseInt(botPadding - botMaxRadius)) + "px";} else
-            {contentContainer.style.paddingBottom = "0";}
-          
-          // Content container must fill vertically to show the border
-          $(contentContainer).css({   	
-			"marginLeft" :			- parseInt( this.x_lbw + this.x_lpad) + "px",
-			"marginRight" :			- parseInt( this.x_rbw + this.x_rpad) + "px",			
-			"marginTop" :			"-" + Math.abs(parseInt( this.x_tbw + (this.x_tpad - topMaxRadius))) + "px",
-			"marginBottom" :		"-" + Math.abs(parseInt( this.x_bbw + (this.x_bpad - botMaxRadius))) + "px",
-			"border-left" :				this.borderStringL,
-			"border-right" :			this.borderStringR,
-			"border-top" :				this.borderString,
-			"border-bottom" :			this.borderStringB,
-			"borderTopWidth" :		"0",
-			"borderBottomWidth" :	"0",
-			"height" : 				"100%",
-			"width" : "100%",
-			"paddingLeft" :			Math.abs(parseInt( this.x_lpad)) + "px",
-			"paddingRight" :		Math.abs(parseInt( this.x_rpad)) + "px",
-			"paddingTop" :			Math.abs(parseInt( this.x_tbw + (this.x_tpad - topMaxRadius))) + "px",
-			"paddingBottom" :   	Math.abs(parseInt( this.x_bbw + (this.x_bpad - botMaxRadius))) + "px"
-          });
-          
-          // Origional container has background image
-          $$.css({            
-          	"paddingLeft" :			Math.abs(parseInt( this.x_lbw + this.x_lpad)) + "px",
-			"paddingRight" :		Math.abs(parseInt( this.x_rbw + this.x_rpad)) + "px",
-			"paddingTop" :			Math.abs(parseInt( this.x_tbw + (this.x_tpad - topMaxRadius))) + "px",
-			"paddingBottom" :      	Math.abs(parseInt( this.x_bbw + (this.x_bpad - botMaxRadius))) + "px",
-			"backgroundColor" : 	this.x_bgc,
-			"backgroundImage" :		this.x_bgi,
-			"backgroundPosition" : 	this.x_bw + 'px -' + Math.abs(parseInt(topMaxRadius - this.x_bw )) + "px",
-			'margin-top':			0, 
-		  	'margin-bottom':		0
-          });
-          
-          //'margin-top':			parseInt(this.x_tmargin + topMaxRadius) + "px", 
-		  //'margin-bottom':		parseInt(this.x_bmargin + botMaxRadius) + "px"
-         
-          // IE does not like an empty box; without this it won't show the contentContainer
-          if ($$.html() == "") $$.html('&nbsp;');
-                    
-          // Append contentContainer
-          $$.wrapInner(contentContainer);          
-          $$.prepend(this.shell);
-          
-          // Wrapper to make margins work correctly
-          var wrapper = document.createElement("div");
-          
-          $(wrapper).css({            
-			'margin-top':			parseInt(this.x_tmargin) + "px", 
-			'margin-bottom':		parseInt(this.x_bmargin) + "px",
-			'padding-top':			topMaxRadius + "px", 
-			'padding-bottom':		botMaxRadius + "px",
-			'overflow': 'hidden'
-          }).addClass('ccwrapper');
-          
-          $$.wrap(wrapper);
-                   
-          // Because of this method of doing the corners we have magins above and below; the following prevents margin collapsing.
-          $$.after('<div class="clear" style="height:0;line-height:0px;">&nbsp;</div>');
-      }		
+					for (intx = 0; intx < specRadius; ++intx) {
+						// Calculate the value of y1 which identifies the pixels inside the border
+						var y1 = (intx + 1 >= borderRadius) ? -1 : Math.floor(Math.sqrt(Math.pow(borderRadius, 2) - Math.pow(intx + 1, 2))) - 1;
+						// Calculate y2 and y3 only if there is a border defined
+						if (borderRadius != specRadius) {
+							var y2 = (intx >= borderRadius) ? -1 : Math.ceil(Math.sqrt(Math.pow(borderRadius, 2) - Math.pow(intx, 2)));
+							var y3 = (intx + 1 >= specRadius) ? -1 : Math.floor(Math.sqrt(Math.pow(specRadius, 2) - Math.pow((intx+1), 2))) - 1;
+						}
+						// Calculate y4
+						var y4 = (intx >= specRadius) ? -1 : Math.ceil(Math.sqrt(Math.pow(specRadius, 2) - Math.pow(intx, 2)));
+						// Draw bar on inside of the border with foreground colour
+						if (y1 > -1) this.drawPixel(intx, 0, this.boxColour, trans, (y1 + 1), newCorner, true, specRadius);
+						// Draw border/foreground antialiased pixels and border only if there is a border defined
+						if (borderRadius != specRadius) {
+							// Cycle the y-axis
+							if (this.spec.antiAlias) {
+								for (inty = y1 + 1; inty < y2; ++inty) {
+									// For each of the pixels that need anti aliasing between the foreground and border colour draw single pixel divs
+									if (this.backgroundImage != "") {
+										var borderFract = curvyObject.pixelFraction(intx, inty, borderRadius) * 100;
+										this.drawPixel(intx, inty, bcolor, trans, 1, newCorner, borderFract >= 30, specRadius);
+									}
+									else if (this.boxColour !== 'transparent') {
+										var pixelcolour = curvyObject.BlendColour(this.boxColour, bcolor, curvyObject.pixelFraction(intx, inty, borderRadius));
+										this.drawPixel(intx, inty, pixelcolour, trans, 1, newCorner, false, specRadius);
+									}
+									else this.drawPixel(intx, inty, bcolor, trans >> 1, 1, newCorner, false, specRadius);
+								}
+								// Draw bar for the border
+								if (y3 >= y2) {
+									if (y2 == -1) y2 = 0;
+									this.drawPixel(intx, y2, bcolor, trans, (y3 - y2 + 1), newCorner, false, 0);
+								}
+								outsideColour = bcolor;  // Set the colour for the outside AA curve
+								inty = y3;               // start_pos - 1 for y-axis AA pixels
+							}
+							else { // no antiAlias
+								if (y3 > y1) { // NB condition was >=, changed to avoid zero-height divs
+									this.drawPixel(intx, (y1 + 1), bcolor, trans, (y3 - y1), newCorner, false, 0);
+								}
+							}
+						}
+						else {
+							outsideColour = this.boxColour;  // Set the colour for the outside curve
+							inty = y1;               // start_pos - 1 for y-axis AA pixels
+						}
+						// Draw aa pixels?
+						if (this.spec.antiAlias && this.boxColour !== 'transparent') {
+							// Cycle the y-axis and draw the anti aliased pixels on the outside of the curve
+							while (++inty < y4) {
+								// For each of the pixels that need anti aliasing between the foreground/border colour & background draw single pixel divs
+								this.drawPixel(intx, inty, outsideColour, (curvyObject.pixelFraction(intx, inty , specRadius) * trans), 1, newCorner, borderWidthTB <= 0, specRadius);
+							}
+						}
+					}
+					// END OF CORNER CREATION
+					// ---------------------------------------------------- END
+				
+					/*
+					Now we have a new corner we need to reposition all the pixels unless
+					the current corner is the bottom right.
+					*/
+					// Loop through all children (pixel bars)
+					for (var t = 0, k = newCorner.childNodes.length; t < k; ++t) {
+						// Get current pixel bar
+						var pixelBar = newCorner.childNodes[t];
+						// Get current top and left properties
+						var pixelBarTop    = parseInt($(pixelBar).css('top'));
+						var pixelBarLeft   = parseInt($(pixelBar).css('left'));
+						var pixelBarHeight = parseInt($(pixelBar).css('height'));
+						// Reposition pixels
+						if (cc == "tl" || cc == "bl") {
+							$(pixelBar).css('left', (specRadius - pixelBarLeft - 1) + "px"); // Left
+						}
+						if (cc == "tr" || cc == "tl"){
+							$(pixelBar).css('top', (specRadius - pixelBarHeight - pixelBarTop) + "px"); // Top
+						}
+						$(pixelBar).css('backgroundRepeat', this.backgroundRepeat);
+	
+						if (this.backgroundImage) switch(cc) {
+							case "tr":
+								$(pixelBar).css('backgroundPosition',(this.backgroundPosX - this.borderWidthL + specRadius - clientWidth - pixelBarLeft) + "px " + (this.backgroundPosY + pixelBarHeight + pixelBarTop + this.borderWidth - specRadius) + "px");
+							break;
+							case "tl":
+								$(pixelBar).css('backgroundPosition',(this.backgroundPosX - specRadius + pixelBarLeft + 1 + this.borderWidthL) + "px " + (this.backgroundPosY - specRadius + pixelBarHeight + pixelBarTop + this.borderWidth) + "px");
+							break;
+							case "bl":
+								$(pixelBar).css('backgroundPosition',(this.backgroundPosX - specRadius + pixelBarLeft + 1 + this.borderWidthL) + "px " + (this.backgroundPosY - clientHeight - this.borderWidth + (!jQuery.support.boxModel ? pixelBarTop : -pixelBarTop) + specRadius) + "px");
+							break;
+							case "br":
+								// Quirks mode on?
+								if (!jQuery.support.boxModel) {
+									$(pixelBar).css('backgroundPosition',(this.backgroundPosX - this.borderWidthL - clientWidth + specRadius - pixelBarLeft) + "px " + (this.backgroundPosY - clientHeight - this.borderWidth + pixelBarTop + specRadius) + "px");
+								} else {
+									$(pixelBar).css('backgroundPosition',(this.backgroundPosX - this.borderWidthL - clientWidth + specRadius - pixelBarLeft) + "px " + (this.backgroundPosY - clientHeight - this.borderWidth + specRadius - pixelBarTop) + "px");
+								}
+							//break;
+						}
+					}
+				
+					// Position the container
+					switch (cc) {
+						case "tl":
+							$(newCorner).css('top', newCorner.style.left = "0");
+							this.topContainer.appendChild(newCorner);
+						break;
+						case "tr":
+							$(newCorner).css('top', newCorner.style.right = "0");
+							this.topContainer.appendChild(newCorner);
+						break;
+						case "bl":
+							$(newCorner).css('bottom', newCorner.style.left = "0");
+							this.bottomContainer.appendChild(newCorner);
+						break;
+						case "br":
+							$(newCorner).css('bottom', newCorner.style.right = "0");
+							this.bottomContainer.appendChild(newCorner);
+						//break;
+					}
+				}
+			
+				/*
+				The last thing to do is draw the rest of the filler DIVs.
+				*/
+				
+				// Find out which corner has the bigger radius and get the difference amount
+				var radiusDiff = {
+					t : this.spec.radiusdiff('t'),
+					b : this.spec.radiusdiff('b')
+				};
+				
+				for (z in radiusDiff) {
+					if (typeof z === 'function') continue; // for prototype, mootools frameworks
+					if (!this.spec.get(z + 'R')) continue; // no need if no corners
+					if (radiusDiff[z]) {
+						// Get the type of corner that is the smaller one
+						var smallerCornerType = (this.spec[z + "lR"] < this.spec[z + "rR"]) ? z + "l" : z + "r";
+				
+						// First we need to create a DIV for the space under the smaller corner
+						var newFiller = document.createElement("div");	
+						
+						$(newFiller).css({
+							'height':			radiusDiff[z] + "px",
+							'width':			this.spec.get(smallerCornerType + 'Ru'),
+							'position':			"absolute",
+							'fontSize':			"1px",
+							'overflow':			"hidden",
+							'backgroundColor':	this.boxColour,
+							'backgroundImage':	this.backgroundImage,
+							'backgroundRepeat':	this.backgroundRepeat
+						});					
+						
+						if (filter) $(newFiller).css('filter', 'filter'); // IE8 bug fix
+				
+						// Position filler
+						switch (smallerCornerType) {
+							case "tl":
+								$(newFiller).css({
+									'bottom':				'',
+									'left':					'0',
+									'borderLeft':			this.borderStringL,
+									'backgroundPosition':	this.backgroundPosX + "px " + (this.borderWidth + this.backgroundPosY - this.spec.tlR) + "px"
+								});
+								this.topContainer.appendChild(newFiller);
+							break;
+							case "tr":
+								$(newFiller).css({
+									'bottom':				'',
+									'right':					'0',
+									'borderRight':			this.borderStringR,
+									'backgroundPosition':	(this.backgroundPosX - this.boxWidth + this.spec.trR) + "px " + (this.borderWidth + this.backgroundPosY - this.spec.trR) + "px"
+								});
+								this.topContainer.appendChild(newFiller);
+							break;
+							case "bl":
+								$(newFiller).css({
+									'top':					'',
+									'left':					'0',
+									'borderLeft':			this.borderStringL,
+									'backgroundPosition':	this.backgroundPosX + "px " + (this.backgroundPosY - this.borderWidth - this.boxHeight + radiusDiff[z] + this.spec.blR) + "px"
+								});
+								this.bottomContainer.appendChild(newFiller);
+							break;
+							case "br":
+								$(newFiller).css({
+									'top':					'',
+									'right':				'0',
+									'borderRight':			this.borderStringR,
+									'backgroundPosition':	(this.borderWidthL + this.backgroundPosX - this.boxWidth + this.spec.brR) + "px " + (this.backgroundPosY - this.borderWidth - this.boxHeight + radiusDiff[z] + this.spec.brR) + "px"
+								});
+								this.bottomContainer.appendChild(newFiller);
+							//break;
+						}
+					}
+				
+					// Create the bar to fill the gap between each corner horizontally
+					var newFillerBar = document.createElement("div");
+					if (filter) $(newFillerBar).css('filter', 'filter'); // IE8 bug fix
+					$(newFillerBar).css({
+						'position':					"relative",
+						'fontSize':					"1px",
+						'overflow':					"hidden",
+						'width':					this.fillerWidth(z),
+						'backgroundColor':			this.boxColour,
+						'backgroundImage':			this.backgroundImage,
+						'backgroundRepeat':			this.backgroundRepeat
+					});
+				
+					switch (z) {
+						case "t":
+							// Top Bar
+							if (this.topContainer) {
+								if (!jQuery.support.boxModel) {
+									$(newFillerBar).css('height', 100 + topMaxRadius + "px");
+								} else {
+									$(newFillerBar).css('height', 100 + topMaxRadius - this.borderWidth + "px");
+								}
+								$(newFillerBar).css('marginLeft', this.spec.tlR ? (this.spec.tlR - this.borderWidthL) + "px" : "0");
+								$(newFillerBar).css('borderTop', this.borderString);
+								if (this.backgroundImage) {
+									var x_offset = this.spec.tlR ?
+										(this.borderWidthL + this.backgroundPosX - this.spec.tlR) + "px " : this.backgroundPosX + "px ";
+									
+									$(newFillerBar).css('backgroundPosition', x_offset + this.backgroundPosY + "px");
+				
+									// Reposition the box's background image
+									$(this.shell).css('backgroundPosition', this.backgroundPosX + "px " + (this.backgroundPosY - topMaxRadius + this.borderWidthL) + "px");
+								}
+								this.topContainer.appendChild(newFillerBar);
+							}
+						break;
+						case "b":
+							if (this.bottomContainer) {
+								// Bottom Bar
+								if (!jQuery.support.boxModel) {
+									$(newFillerBar).css('height', botMaxRadius + "px");
+								} else {
+									$(newFillerBar).css('height', botMaxRadius - this.borderWidthB + "px");
+								}
+								$(newFillerBar).css('marginLeft', this.spec.blR ? (this.spec.blR - this.borderWidthL) + "px" : "0");
+								$(newFillerBar).css('borderBottom', this.borderStringB);
+								if (this.backgroundImage) {
+									var x_offset = this.spec.blR ?
+										(this.backgroundPosX + this.borderWidthL - this.spec.blR) + "px " : this.backgroundPosX + "px ";
+									$(newFillerBar).css('backgroundPosition', x_offset + (this.backgroundPosY - clientHeight - this.borderWidth + botMaxRadius) + "px");
+								}
+								this.bottomContainer.appendChild(newFillerBar);
+							}
+						//break;
+					}
+				}			
+			
+				// style content container
+				z = clientWidth;				
+				if (jQuery.support.boxModel) z -= this.leftPadding + this.rightPadding;
+				
+				$(this.contentContainer).css({
+					'position':			'absolute',
+					'left':				this.borderWidthL + "px",
+					'paddingTop':		this.topPadding + "px",
+					'top':				this.borderWidth + "px",
+					'paddingLeft':		this.leftPadding + "px",
+					'paddingRight':		this.rightPadding + "px",
+					'width':			z + "px",
+					'textAlign':		$$.css('textAlign')
+				}).addClass('autoPadDiv');
+				
+				$$.css('textAlign', 'left').addClass('hasCorners');
+	
+				this.box.appendChild(this.contentContainer);
+				if (boxDisp) $(boxDisp).css('display', boxDispSave);
+			};
+			
+			if (this.backgroundImage) {
+				backgroundPosX = this.backgroundCheck(backgroundPosX);
+				backgroundPosY = this.backgroundCheck(backgroundPosY);
+				if (this.backgroundObject) {
+					this.backgroundObject.holdingElement = this;
+					this.dispatch = this.applyCorners;
+					this.applyCorners = function() {
+						if (this.backgroundObject.complete) this.dispatch();
+						else this.backgroundObject.onload = new Function('curvyObject.dispatch(this.holdingElement);');
+					};
+				}
+			}
+		};
+		
+		curvyObject.prototype.backgroundCheck = function(style) {
+		  if (style === 'top' || style === 'left' || parseInt(style) === 0) return 0;
+		  if (!(/^[-\d.]+px$/.test(style))  && !this.backgroundObject) {
+		    this.backgroundObject = new Image;
+		    var imgName = function(str) {
+		      var matches = /url\("?([^'"]+)"?\)/.exec(str);
+		      return (matches ? matches[1] : str);
+		    };
+		    this.backgroundObject.src = imgName(this.backgroundImage);
+		  }
+		  return style;
+		};
+		
+		curvyObject.dispatch = function(obj) {
+		  if ('dispatch' in obj)
+		    obj.dispatch();
+		  else throw Error('No dispatch function');
+		};
 		
 		/*
 		This function draws the pixels
 		*/	
-		function drawPixel( intx, inty, colour, transAmount, height, newCorner, image, cornerRadius, isBorder, bgImage, x_width, x_height, x_bw, repeat ) {
-			
+		curvyObject.prototype.drawPixel = function( intx, inty, colour, transAmount, height, newCorner, image, cornerRadius ) {			
 			//var $$ = $(box);			
-			
 		    var pixel = document.createElement("div");
 		    
 		    $(pixel).css({	
-		    	"height" :			height, 
+		    	"height" :			height + "px",
 		    	"width" :			"1px", 
 		    	"position" :		"absolute", 
 		    	"font-size" :		"1px", 
@@ -859,183 +778,185 @@ $(temp).attr("id","ccbottommiddlefiller");
 		    	"background-color" :colour
 		    });
 		    
-		    // Max Top Radius
-		    var topMaxRadius = Math.max(settings.tl ? settings.tl.radius : 0, settings.tr ? settings.tr.radius : 0);
+		    var topMaxRadius = this.spec.get('tR');
 		    
 		    // Dont apply background image to border pixels
-			if(image == -1 && bgImage !="")
+			if(image && this.backgroundImage != "")
 			{
 				$(pixel).css({
-					"background-position":"-" + Math.abs(x_width - (cornerRadius - intx) + x_bw) + "px -" + Math.abs((x_height + topMaxRadius + inty) -x_bw) + "px",
-					"background-image":bgImage,
-					"background-repeat":repeat					 
+					"background-position":"-" + (this.boxWidth - (cornerRadius - intx) + this.borderWidth) + "px -" + ((this.boxHeight + topMaxRadius + inty) - this.borderWidth) + "px",
+					"background-image":this.backgroundImage				 
 				});
-			}
-			else
-			{
-				if (!isBorder) $(pixel).addClass('hasBackgroundColor');
 			}		    
 		    if (transAmount != 100)
 		    	$(pixel).css({opacity: (transAmount/100) });
 
 		    newCorner.appendChild(pixel);
-		};		
-				
+		};
 		
-		// Utilities
-		function BlendColour(Col1, Col2, Col1Fraction) 
+		curvyObject.prototype.fillerWidth = function(tb) {
+			var b_width, f_width;
+			b_width = !jQuery.support.boxModel ? 0 : this.spec.radiusCount(tb) * this.borderWidthL;
+			
+			if ((f_width = this.boxWidth - this.spec.radiusSum(tb) + b_width) < 0)
+				throw Error("Radius exceeds box width");
+			return f_width + 'px';
+		};			
+		
+		// Gets the computed colour.
+		curvyObject.getComputedColour = function(colour) {
+		  var d = document.createElement('DIV');
+		  d.style.backgroundColor = colour;
+		  document.body.appendChild(d);
+		
+		  if (window.getComputedStyle) { // Mozilla, Opera, Chrome, Safari
+		    var rtn = document.defaultView.getComputedStyle(d, null).getPropertyValue('background-color');
+		    d.parentNode.removeChild(d);
+		    if (rtn.substr(0, 3) === "rgb") rtn = curvyObject.rgb2Hex(rtn);
+		    return rtn;
+		  }
+		  else { // IE
+		    var rng = document.body.createTextRange();
+		    rng.moveToElementText(d);
+		    rng.execCommand('ForeColor', false, colour);
+		    var iClr = rng.queryCommandValue('ForeColor');
+		    var rgb = "rgb("+(iClr & 0xFF)+", "+((iClr & 0xFF00)>>8)+", "+((iClr & 0xFF0000)>>16)+")";
+		    d.parentNode.removeChild(d);
+		    rng = null;
+		    return curvyObject.rgb2Hex(rgb);
+		  }
+		};
+				
+		curvyObject.BlendColour = function(Col1, Col2, Col1Fraction) 
 		{
 			
-			var red1 = parseInt(Col1.substr(1,2),16);
-			var green1 = parseInt(Col1.substr(3,2),16);
-			var blue1 = parseInt(Col1.substr(5,2),16);
-			var red2 = parseInt(Col2.substr(1,2),16);
-			var green2 = parseInt(Col2.substr(3,2),16);
-			var blue2 = parseInt(Col2.substr(5,2),16);
+			if (Col1 === 'transparent' || Col2 === 'transparent') throw Error('Cannot blend with transparent');
+			if (Col1.charAt(0) !== '#') {
+				Col1 = curvyObject.format_colour(Col1);
+			}
+			if (Col2.charAt(0) !== '#') {
+				Col2 = curvyObject.format_colour(Col2);
+			}
+			var red1 = parseInt(Col1.substr(1, 2), 16);
+			var green1 = parseInt(Col1.substr(3, 2), 16);
+			var blue1 = parseInt(Col1.substr(5, 2), 16);
+			var red2 = parseInt(Col2.substr(1, 2), 16);
+			var green2 = parseInt(Col2.substr(3, 2), 16);
+			var blue2 = parseInt(Col2.substr(5, 2), 16);
 			
-			if(Col1Fraction > 1 || Col1Fraction < 0) Col1Fraction = 1;
+			if (Col1Fraction > 1 || Col1Fraction < 0) Col1Fraction = 1;
 			
 			var endRed = Math.round((red1 * Col1Fraction) + (red2 * (1 - Col1Fraction)));
-			if(endRed > 255) endRed = 255;
-			if(endRed < 0) endRed = 0;
+			if (endRed > 255) endRed = 255;
+			if (endRed < 0) endRed = 0;
 			
 			var endGreen = Math.round((green1 * Col1Fraction) + (green2 * (1 - Col1Fraction)));
-			if(endGreen > 255) endGreen = 255;
-			if(endGreen < 0) endGreen = 0;
+			if (endGreen > 255) endGreen = 255;
+			if (endGreen < 0) endGreen = 0;
 			
 			var endBlue = Math.round((blue1 * Col1Fraction) + (blue2 * (1 - Col1Fraction)));
-			if(endBlue > 255) endBlue = 255;
-			if(endBlue < 0) endBlue = 0;
+			if (endBlue > 255) endBlue = 255;
+			if (endBlue < 0) endBlue = 0;
 			
-			return "#" + IntToHex(endRed)+ IntToHex(endGreen)+ IntToHex(endBlue);
+			return "#" + curvyObject.IntToHex(endRed) + curvyObject.IntToHex(endGreen)+ curvyObject.IntToHex(endBlue);
 			
-		}
+		};
 	
-		function IntToHex(strNum) 
+		curvyObject.IntToHex = function(strNum)
 		{			
-			rem = strNum % 16;
-			base = Math.floor(strNum / 16);
-			
-			baseS = MakeHex(base);
-			remS = MakeHex(rem);
-			
-			return baseS + '' + remS;
-		}
-	
-		function MakeHex(x)
-		{
-		  if((x >= 0) && (x <= 9))
-		  {
-		      return x;
-		  }
-		  else
-		  {
-		      switch(x)
-		      {
-		          case 10: return "A";
-		          case 11: return "B";
-		          case 12: return "C";
-		          case 13: return "D";
-		          case 14: return "E";
-		          case 15: return "F";
-		      }
-		  }
-		}
+			var hexdig = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' ];
+			return hexdig[strNum >>> 4] + '' + hexdig[strNum & 15];
+		};
 	
 		/*
 		For a pixel cut by the line determines the fraction of the pixel on the 'inside' of the
 		line.  Returns a number between 0 and 1
 		*/
-		function pixelFraction(x, y, r)
+		curvyObject.pixelFraction = function(x, y, r) 
 		{
-			var pixelfraction = 0;
-			
+  			var fraction;
+ 			var rsquared = r * r;
+
 			/*
 			determine the co-ordinates of the two points on the perimeter of the pixel that the
 			circle crosses
 			*/
-			var xvalues = new Array(1);
-			var yvalues = new Array(1);
+			var xvalues = new Array(2);
+			var yvalues = new Array(2);
 			var point = 0;
 			var whatsides = "";
-			
+
 			// x + 0 = Left
-			var intersect = Math.sqrt((Math.pow(r,2) - Math.pow(x,2)));
+			var intersect = Math.sqrt(rsquared - Math.pow(x, 2));
 			
-			if ((intersect >= y) && (intersect < (y+1)))
-			{
+			if (intersect >= y && intersect < (y + 1)) {
 				whatsides = "Left";
 				xvalues[point] = 0;
 				yvalues[point] = intersect - y;
-				point =  point + 1;
+				++point;
 			}
 			// y + 1 = Top
-			var intersect = Math.sqrt((Math.pow(r,2) - Math.pow(y+1,2)));
+			intersect = Math.sqrt(rsquared - Math.pow(y + 1, 2));
 			
-			if ((intersect >= x) && (intersect < (x+1)))
-			{
-				whatsides = whatsides + "Top";
+			if (intersect >= x && intersect < (x + 1)) {
+				whatsides += "Top";
 				xvalues[point] = intersect - x;
 				yvalues[point] = 1;
-				point = point + 1;
+				++point;
 			}
 			// x + 1 = Right
-			var intersect = Math.sqrt((Math.pow(r,2) - Math.pow(x+1,2)));
+			intersect = Math.sqrt(rsquared - Math.pow(x + 1, 2));
 			
-			if ((intersect >= y) && (intersect < (y+1)))
-			{
-				whatsides = whatsides + "Right";
+			if (intersect >= y && intersect < (y + 1)) {
+				whatsides += "Right";
 				xvalues[point] = 1;
 				yvalues[point] = intersect - y;
-				point =  point + 1;
+				++point;
 			}
 			// y + 0 = Bottom
-			var intersect = Math.sqrt((Math.pow(r,2) - Math.pow(y,2)));
+			intersect = Math.sqrt(rsquared - Math.pow(y, 2));
 			
-			if ((intersect >= x) && (intersect < (x+1)))
-			{
-				whatsides = whatsides + "Bottom";
+			if (intersect >= x && intersect < (x + 1)) {
+				whatsides += "Bottom";
 				xvalues[point] = intersect - x;
 				yvalues[point] = 0;
 			}
-			
+
 			/*
 			depending on which sides of the perimeter of the pixel the circle crosses calculate the
 			fraction of the pixel inside the circle
 			*/
-			switch (whatsides)
-			{
-			      case "LeftRight":
-			      pixelfraction = Math.min(yvalues[0],yvalues[1]) + ((Math.max(yvalues[0],yvalues[1]) - Math.min(yvalues[0],yvalues[1]))/2);
-			      break;
-			
-			      case "TopRight":
-			      pixelfraction = 1-(((1-xvalues[0])*(1-yvalues[1]))/2);
-			      break;
-			
-			      case "TopBottom":
-			      pixelfraction = Math.min(xvalues[0],xvalues[1]) + ((Math.max(xvalues[0],xvalues[1]) - Math.min(xvalues[0],xvalues[1]))/2);
-			      break;
-			
-			      case "LeftBottom":
-			      pixelfraction = (yvalues[0]*xvalues[1])/2;
-			      break;
-			
-			      default:
-			      pixelfraction = 1;
-			}
-			
-			return pixelfraction;
-		}
+			switch (whatsides) {
+				case "LeftRight":
+					fraction = Math.min(yvalues[0], yvalues[1]) + ((Math.max(yvalues[0], yvalues[1]) - Math.min(yvalues[0], yvalues[1])) / 2);
+				break;
+				
+				case "TopRight":
+					fraction = 1 - (((1 - xvalues[0]) * (1 - yvalues[1])) / 2);
+				break;
+				
+				case "TopBottom":
+					fraction = Math.min(xvalues[0], xvalues[1]) + ((Math.max(xvalues[0], xvalues[1]) - Math.min(xvalues[0], xvalues[1])) / 2);
+				break;
+				
+				case "LeftBottom":
+					fraction = yvalues[0] * xvalues[1] / 2;
+				break;
+				
+				default:
+					fraction = 1;
+			}			
+			return fraction;
+		};
   
   
 		// This function converts CSS rgb(x, x, x) to hexadecimal
-		function rgb2Hex(rgbColour)
+		curvyObject.rgb2Hex = function(rgbColour) 
 		{
 			try{
 			
 				// Get array of RGB values
-				var rgbArray = rgb2Array(rgbColour);
+				var rgbArray = curvyObject.rgb2Array(rgbColour);
 				
 				// Get RGB values
 				var red   = parseInt(rgbArray[0]);
@@ -1043,62 +964,265 @@ $(temp).attr("id","ccbottommiddlefiller");
 				var blue  = parseInt(rgbArray[2]);
 				
 				// Build hex colour code
-				var hexColour = "#" + IntToHex(red) + IntToHex(green) + IntToHex(blue);
+				var hexColour = "#" + curvyObject.IntToHex(red) + curvyObject.IntToHex(green) + curvyObject.IntToHex(blue);
 			}
 			catch(e){			
 				alert("There was an error converting the RGB value to Hexadecimal in function rgb2Hex");
 			}
 			
 			return hexColour;
-		}
+		};
 		
 		// Returns an array of rbg values
-		function rgb2Array(rgbColour)
+		curvyObject.rgb2Array = function(rgbColour) 
 		{
 			// Remove rgb()
 			var rgbValues = rgbColour.substring(4, rgbColour.indexOf(")"));
-			
+
 			// Split RGB into array
-			var rgbArray = rgbValues.split(", ");
-			
-			return rgbArray;
-		}	
+			return rgbValues.split(", ");
+		};
 
 		// Formats colours
-		function format_colour(colour)
+		curvyObject.format_colour = function(colour) 
 		{
-			var returnColour = "#ffffff";
-			
 			// Make sure colour is set and not transparent
-			if(colour != "" && colour != "transparent")
-			{
-				// RGB Value?
-				if(colour.substr(0, 3) == "rgb" && colour.substr(0, 4) != "rgba")
-				{
-				  // Get HEX aquiv.
-				  returnColour = rgb2Hex(colour);
-				}
-				else if(colour.length == 4)
-				{
-				  // 3 chr colour code add remainder
-				  returnColour = "#" + colour.substring(1, 2) + colour.substring(1, 2) + colour.substring(2, 3) + colour.substring(2, 3) + colour.substring(3, 4) + colour.substring(3, 4);
-				}
-				else
-				{
-				  // Normal valid hex colour
-				  returnColour = colour;
-				}
+			if (colour != "" && colour != "transparent") {
+			  // RGB Value?
+			  if (colour.substr(0, 3) === "rgb") {
+			    // Get HEX aquiv.
+			    colour = curvyObject.rgb2Hex(colour);
+			  }
+			  else if (colour.charAt(0) !== '#') {
+			    // Convert colour name to hex value
+			    colour = getComputedColour(colour);
+			  }
+			  else if (colour.length === 4) {
+			    // 3 chr colour code add remainder
+			    colour = "#" + colour.charAt(1) + colour.charAt(1) + colour.charAt(2) + colour.charAt(2) + colour.charAt(3) + colour.charAt(3);
+			  }
 			}
-			
-			return returnColour;
-		}
-		
-		// Removes 'px' from string
-		function strip_px(value) 
-		{
-			if (typeof(value)!='string') return value;
-			return parseInt((( value != "auto" && value.indexOf("%") == -1 && value != "" && value.indexOf("px") !== -1)? Math.round(value.slice(0, value.indexOf("px"))) : 0))
-		}
+			return colour;
+		};	
+		  
+		return this.each(function() {
+			if (!$(this).is('.hasCorners')) {
+				/*if (nativeCornersSupported) {
+					if (settings.get('tlR')) {
+						$(this).css({
+							'border-top-left-radius' : settings.get('tlR') + 'px',
+							'-moz-border-radius-topleft' : settings.get('tlR') + 'px',
+							'-webkit-border-top-left-radius' : settings.get('tlR') + 'px'
+						});
+					}
+					if (settings.get('trR')) {
+						$(this).css({
+							'border-top-right-radius' : settings.get('trR') + 'px',
+							'-moz-border-radius-topright' : settings.get('trR') + 'px',
+							'-webkit-border-top-right-radius' : settings.get('trR') + 'px'
+						});
+					}
+					if (settings.get('blR')) {
+						$(this).css({
+							'border-bottom-left-radius' : settings.get('blR') + 'px',
+							'-moz-border-radius-bottomleft' : settings.get('blR') + 'px',
+							'-webkit-border-bottom-left-radius' : settings.get('blR') + 'px'
+						});
+					}
+					if (settings.get('brR')) {
+						$(this).css({
+							'border-bottom-right-radius' : settings.get('brR') + 'px',
+							'-moz-border-radius-bottomright' : settings.get('brR') + 'px',
+							'-webkit-border-bottom-right-radius' : settings.get('brR') + 'px'
+						});
+					}
+				} else {*/
+					if (!$(this).is('.drawn')) {						
+						$(this).addClass('drawn');
+						
+						thestyles = $(this).attr('style');
+						if (thestyles == 'undefined') {
+							thestyles = '';
+						}
+						
+						redrawList.push({
+						  node : this,
+						  spec : settings,
+						  style : thestyles,
+						  copy : $(this).clone(true)
+						});
+					}
+					var obj = new curvyObject(settings, this);
+					obj.applyCorners();
+				//}			
+			}			
+		});
 			
 	};
+	
+	$.fn.removeCorners = function() { 
+		return this.each(function(i, e) {
+			thisdiv = e;
+			$.each(
+				redrawList,
+				function( intIndex, list ){	
+					if (list.node==thisdiv) {
+						$('div:not(.autoPadDiv)', thisdiv).remove();
+						$('.autoPadDiv', thisdiv).replaceWith( $('.autoPadDiv', thisdiv).contents() );	
+						style = list.style == 'undefined' ? list.style : ''; 
+						$(thisdiv).removeClass('hasCorners').attr('style', style );						
+						return false;
+					}
+				}
+			);
+		});
+	};
+	
+	$.fn.redrawCorners = function() { 
+		return this.each(function(i, e) {
+			thisdiv = e;
+			$.each(
+				redrawList,				
+				function( intIndex, list ){	
+					if (list.node==thisdiv) {
+						$('div:not(.autoPadDiv)', thisdiv).remove();
+						$('.autoPadDiv', thisdiv).replaceWith( $('.autoPadDiv', thisdiv).contents() );	
+						
+						$(thisdiv).removeClass('hasCorners').attr('style', style );	
+						$(thisdiv).corner(list.spec);
+						return false;
+					}
+				}
+			);
+		});
+	};
+	
+	$(function(){
+		
+		// Detect styles and apply corners in browsers with no native border-radius support
+		if ($.browser.msie) {	
+			/* Force caching of bg images in IE6 */
+			try {	document.execCommand("BackgroundImageCache", false, true);	}	catch(e) {};
+			
+			function units(num) {
+				if (!parseInt(num)) return 'px'; // '0' becomes '0px' for simplicity's sake
+				var matches = /^[\d.]+(\w+)$/.exec(num);
+				return matches[1];
+			};
+			
+			/* Detect and Apply Corners */
+			var t, i, j;
+			
+			function procIEStyles(rule) {
+				var style = rule.style;
+			
+				if (jQuery.browser.version > 6.0) {
+					var allR = style['-moz-border-radius'] || 0;
+					var tR   = style['-moz-border-radius-topright'] || 0;
+					var tL   = style['-moz-border-radius-topleft'] || 0;
+					var bR   = style['-moz-border-radius-bottomright'] || 0;
+					var bL   = style['-moz-border-radius-bottomleft'] || 0;
+				}
+				else {
+					var allR = style['moz-border-radius'] || 0;
+					var tR   = style['moz-border-radius-topright'] || 0;
+					var tL   = style['moz-border-radius-topleft'] || 0;
+					var bR   = style['moz-border-radius-bottomright'] || 0;
+					var bL   = style['moz-border-radius-bottomleft'] || 0;
+				}
+				if (allR) {
+					var t = allR.split('/'); // ignore elliptical spec.
+					t = t[0].split(/\s+/);
+					if (t[t.length - 1] === '') t.pop();
+					switch (t.length) {
+						case 3:
+							tL = t[0];
+							tR = bL = t[1];
+							bR = t[2];
+							allR = false;
+						break;
+						case 2:
+							tL = bR = t[0];
+							tR = bL = t[1];
+							allR = false;
+						case 1:
+						break;
+						case 4:
+							tL = t[0];
+							tR = t[1];
+							bR = t[2];
+							bL = t[3];
+							allR = false;
+						break;
+						default:
+							alert('Illegal corners specification: ' + allR);
+					}
+				}
+				if (allR || tL || tR || bR || bL) {
+					var settings = new curvyCnrSpec(rule.selectorText);
+					if (allR)
+						settings.setcorner(null, null, parseInt(allR), units(allR));
+					else {
+						if (tR) settings.setcorner('t', 'r', parseInt(tR), units(tR));
+						if (tL) settings.setcorner('t', 'l', parseInt(tL), units(tL));
+						if (bL) settings.setcorner('b', 'l', parseInt(bL), units(bL));
+						if (bR) settings.setcorner('b', 'r', parseInt(bR), units(bR));
+					}
+					$(rule.selectorText).corner(settings);
+				}
+			}
+			for (t = 0; t < document.styleSheets.length; ++t) {
+				try {
+					if (document.styleSheets[t].imports) {
+						for (i = 0; i < document.styleSheets[t].imports.length; ++i) {
+							for (j = 0; j < document.styleSheets[t].imports[i].rules.length; ++j) {
+								procIEStyles(document.styleSheets[t].imports[i].rules[j]);
+							}
+						}
+					}
+					for (i = 0; i < document.styleSheets[t].rules.length; ++i)
+						procIEStyles(document.styleSheets[t].rules[i]);
+				}
+				catch (e) {} 
+			}
+		} else if ($.browser.opera) {
+			
+			// Apply if border radius is not supported
+			try {	checkStandard = (document.body.style.BorderRadius !== undefined);	} catch(err) {}
+			
+			if (!checkStandard) {
+		
+				function opera_contains_border_radius(sheetnumber) {
+					return /border-((top|bottom)-(left|right)-)?radius/.test(document.styleSheets.item(sheetnumber).ownerNode.text);
+				};
+				
+				rules = [];
+			
+				for (t = 0; t < document.styleSheets.length; ++t) {
+					if (opera_contains_border_radius(t)) {
+				   	
+				   		var txt = document.styleSheets.item(sheetnumber).ownerNode.text;
+				   		txt = txt.replace(/\/\*(\n|\r|.)*?\*\//g, ''); // strip comments
+				   		
+				   		var pat = new RegExp("^\\s*([\\w.#][-\\w.#, ]+)[\\n\\s]*\\{([^}]+border-((top|bottom)-(left|right)-)?radius[^}]*)\\}", "mg");
+				   		var matches;				   		
+				   		while ((matches = pat.exec(txt)) !== null) {
+				   			var pat2 = new RegExp("(..)border-((top|bottom)-(left|right)-)?radius:\\s*([\\d.]+)(in|em|px|ex|pt)", "g");
+				   			var submatches, cornerspec = new curvyCnrSpec(matches[1]);
+				   			while ((submatches = pat2.exec(matches[2])) !== null) {
+				   				if (submatches[1] !== "z-")
+				   				    cornerspec.setcorner(submatches[3], submatches[4], submatches[5], submatches[6]);
+				   				rules.push(cornerspec);
+				   			}
+				   		}
+				   	}
+				}				
+				for (i in rules) if (!isNaN(i))
+					$(rules[i].selectorText).corner(rules[i]);
+					
+					
+			}
+		}
+	});		
+	
 })(jQuery);
