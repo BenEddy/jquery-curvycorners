@@ -162,7 +162,7 @@ Usage:
 		var checkWebkit, checkMozilla, checkStandard;
 		try {	checkWebkit = (document.body.style.WebkitBorderRadius !== undefined);	} catch(err) {}
 		try {	checkMozilla = (document.body.style.MozBorderRadius !== undefined);	} catch(err) {}
-		try {	checkStandard = (document.body.style.BorderRadius !== undefined);	} catch(err) {}		
+		try {	checkStandard = ( (document.body.style.BorderRadius !== undefined) || (document.body.style.borderRadius !== undefined) );	} catch(err) {}		
 		if (checkWebkit || checkMozilla || checkStandard) nativeCornersSupported = true;
 		
 		if (options instanceof curvyCnrSpec) {
@@ -1196,7 +1196,7 @@ Usage:
 		} else if ($.browser.opera) {
 			
 			// Apply if border radius is not supported
-			try {	checkStandard = (document.body.style.BorderRadius !== undefined);	} catch(err) {}
+			try {	checkStandard = ( (document.body.style.BorderRadius !== undefined) || (document.body.style.BorderRadius !== undefined));	} catch(err) {}
 			
 			if (!checkStandard) {
 		
