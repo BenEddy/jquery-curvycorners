@@ -5,7 +5,7 @@
  *  http://code.google.com/p/jquerycurvycorners/                *
  *  ==========================================================  *
  *                                                              *
- *  Version 2.1 (Based on CC 2.1 beta)                          *
+ *  Version 2.1.1 (Based on CC 2.1 beta)                          *
  *                                                              *
  *  Original by: Terry Riegel, Cameron Cooke and Tim Hutchison  *
  *  Website: http://www.curvycorners.net                        *
@@ -235,7 +235,7 @@ Usage:
 			var borderStyleR    = $$.css("borderRightStyle");
 			
 			var boxColour       = $$.css("backgroundColor");
-			var backgroundImage = $$.css("backgroundImage");			
+			var backgroundImage = $$.css("backgroundImage");		
 			var backgroundRepeat= $$.css("backgroundRepeat");
 				
 			var backgroundPosX, backgroundPosY;
@@ -369,7 +369,7 @@ Usage:
 						var retval;
 						if (style === 'right' || style === 'bottom') return boxlen - imglen;
 						if (style === 'center') return (boxlen - imglen) / 2;
-						if (style.indexOf('%') > 0) return (boxlen - imglen) * 100 / parseInt(style);
+						if (style.indexOf('%') > 0) return (boxlen - imglen) / (100 / parseInt(style));
 						return styleToNPx(style);
 					};
 					this.backgroundPosX  = bgOffset(backgroundPosX, this.backgroundObject.width, clientWidth);
@@ -607,7 +607,7 @@ Usage:
 						});					
 						
 						if (filter) $(newFiller).css('filter', 'filter'); // IE8 bug fix
-				
+
 						// Position filler
 						switch (smallerCornerType) {
 							case "tl":
@@ -727,7 +727,7 @@ Usage:
 				if (boxDisp) $(boxDisp).css('display', boxDispSave);
 			};
 			
-			if (this.backgroundImage) {
+			if (this.backgroundImage) {				
 				backgroundPosX = this.backgroundCheck(backgroundPosX);
 				backgroundPosY = this.backgroundCheck(backgroundPosY);
 				if (this.backgroundObject) {
@@ -735,7 +735,7 @@ Usage:
 					this.dispatch = this.applyCorners;
 					this.applyCorners = function() {
 						if (this.backgroundObject.complete) this.dispatch();
-						else this.backgroundObject.onload = new Function('curvyObject.dispatch(this.holdingElement);');
+						else this.backgroundObject.onload = new Function('$(this.holdingElement).dispatch();');
 					};
 				}
 			}
@@ -752,13 +752,12 @@ Usage:
 		    this.backgroundObject.src = imgName(this.backgroundImage);
 		  }
 		  return style;
-		};
+		};		
 		
-		curvyObject.dispatch = function(obj) {
-		  if ('dispatch' in obj)
-		    obj.dispatch();
+		/*curvyObject.dispatch = function(obj) {
+		  if ('dispatch' in obj) obj.dispatch();
 		  else throw Error('No dispatch function');
-		};
+		};*/
 		
 		/*
 		This function draws the pixels
@@ -1007,7 +1006,7 @@ Usage:
 		  
 		return this.each(function() {
 			if (!$(this).is('.hasCorners')) {
-				/*if (nativeCornersSupported) {
+				if (nativeCornersSupported) {
 					if (settings.get('tlR')) {
 						$(this).css({
 							'border-top-left-radius' : settings.get('tlR') + 'px',
@@ -1036,7 +1035,7 @@ Usage:
 							'-webkit-border-bottom-right-radius' : settings.get('brR') + 'px'
 						});
 					}
-				} else {*/
+				} else {
 					if (!$(this).is('.drawn')) {						
 						$(this).addClass('drawn');
 						
@@ -1054,7 +1053,7 @@ Usage:
 					}
 					var obj = new curvyObject(settings, this);
 					obj.applyCorners();
-				//}			
+				}			
 			}			
 		});
 			
@@ -1066,9 +1065,10 @@ Usage:
 			$.each(
 				redrawList,
 				function( intIndex, list ){	
-					if (list.node==thisdiv) {
-						$('div:not(.autoPadDiv)', thisdiv).remove();
-						$('.autoPadDiv', thisdiv).replaceWith( $('.autoPadDiv', thisdiv).contents() );	
+					if (list.node==thisdiv && $('.autoPadDiv', thisdiv).size()>0) {
+						//$('div:not(.autoPadDiv)', thisdiv).remove();
+						//$('.autoPadDiv', thisdiv).replaceWith( $('.autoPadDiv', thisdiv).contents() );							
+						$(thisdiv).html($(thisdiv).children('.autoPadDiv:first').contents());						
 						style = list.style == 'undefined' ? list.style : ''; 
 						$(thisdiv).removeClass('hasCorners').attr('style', style );						
 						return false;
@@ -1085,16 +1085,24 @@ Usage:
 				redrawList,				
 				function( intIndex, list ){	
 					if (list.node==thisdiv) {
-						$('div:not(.autoPadDiv)', thisdiv).remove();
-						$('.autoPadDiv', thisdiv).replaceWith( $('.autoPadDiv', thisdiv).contents() );	
-						
-						$(thisdiv).removeClass('hasCorners').attr('style', style );	
+						//$('div:not(.autoPadDiv)', thisdiv).remove();
+						//$('.autoPadDiv', thisdiv).replaceWith( $('.autoPadDiv', thisdiv).contents() );	
+						//style = list.style == 'undefined' ? list.style : ''; 
+						//$(thisdiv).removeClass('hasCorners').attr('style', style );	
 						$(thisdiv).corner(list.spec);
 						return false;
 					}
 				}
 			);
 		});
+	};
+	
+	$.fn.dispatch = function() { 
+		return this.each(function(i, e) {
+			obj = e;
+			if ('dispatch' in obj) obj.dispatch();
+			else throw Error('No dispatch function')
+		});			
 	};
 	
 	$(function(){
